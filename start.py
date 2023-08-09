@@ -8,8 +8,8 @@ from tkinter import messagebox
 from tkinter import Listbox, Button
 from tkinter import ttk
 import tkinter.filedialog
-source_folder_original = "/home/miki/Downloads/sssssssssssssss"
-target_folder_original = "/home/miki/Downloads/target"
+source_folder_original = "~/Downloads/sssssssssssssss"
+target_folder_original = "~/Downloads/target"
 def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "bmp")):
     subfolders_with_images = []
 
