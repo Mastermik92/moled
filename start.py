@@ -7,9 +7,18 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import Listbox, Button
 from tkinter import ttk
+import configparser
 import tkinter.filedialog
-source_folder_original = "~/Downloads/sssssssssssssss"
-target_folder_original = "~/Downloads/target"
+#source_folder_original = "~/Downloads/sssssssssssssss"
+#target_folder_original = "~/Downloads/target"
+# Load configuration from config.ini
+print("Start")
+config = configparser.ConfigParser()
+config.read('./config.ini')
+source_folder = config['Paths']['source_folder']
+target_folder = config['Paths']['target_folder']
+print("source_folder ", source_folder)
+print("target_folder ", target_folder)
 def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "bmp")):
     subfolders_with_images = []
 
@@ -76,7 +85,7 @@ class ImageMoveGUI(tk.Tk):
         self.notebook.add(self.tv_series_tab, text="TV Series")
         self.notebook.pack(fill="both", expand=True)
 
-        self.source_folder_movies = source_folder_original  # Replace with your source folder for movies.
+        self.source_folder_movies = source_folder  # Replace with your source folder for movies.
         self.source_folder_tv_series = "path_to_tv_series"  # Replace with your source folder for TV series.
 
         self.movies_label = tk.Label(self.movies_tab, text="Movies Source Folder:")
@@ -95,7 +104,7 @@ class ImageMoveGUI(tk.Tk):
         self.tv_series_change_button = tk.Button(self.tv_series_tab, text="Change Source Folder", command=self.change_tv_series_source)
         self.tv_series_change_button.pack(pady=5)
 
-        self.subfolders_with_images = find_subfolders_with_images(source_folder_original)
+        self.subfolders_with_images = find_subfolders_with_images(source_folder)
 
         self.listbox = tk.Listbox(self.movies_tab)
         for folder in self.subfolders_with_images:
@@ -121,7 +130,7 @@ class ImageMoveGUI(tk.Tk):
             self.tv_series_source_var.set(new_source_folder)
 
     def move_folders(self):
-        move_random_folders_to_target(self.source_folder_movies, "target")  # Replace "target" with your target folder.
+        move_random_folders_to_target(self.source_folder_movies, target_folder)  # Replace "target" with your target folder.
         messagebox.showinfo("Move Complete", "Random folders moved!")
 
 
