@@ -101,6 +101,7 @@ class ImageMoveGUI(tk.Tk):
         #self.source_folder_movies = source_folder  # Replace with your source folder for movies.
         self.source_folder_tv_series = "path_to_tv_series"  # Replace with your source folder for TV series.
 
+        # Source folder section
         self.movies_label = tk.Label(self.movies_tab, text="Movies Source Folder:")
         self.movies_label.pack(pady=5)
         self.movies_source_var = tk.StringVar(value=self.source_folder_movies)
@@ -117,6 +118,17 @@ class ImageMoveGUI(tk.Tk):
         self.tv_series_change_button = tk.Button(self.tv_series_tab, text="Change Source Folder", command=self.change_tv_series_source)
         self.tv_series_change_button.pack(pady=5)
 
+        # Target folder section
+        self.movies_target_label = tk.Label(self.movies_tab, text="Movies Target Folder:")
+        self.movies_target_label.pack(pady=5)
+        self.movies_target_var = tk.StringVar(value=self.target_folder_movies)
+        self.movies_target_label = tk.Label(self.movies_tab, textvariable=self.movies_target_var)
+        self.movies_target_label.pack()
+        self.movies_change_target_button = tk.Button(self.movies_tab, text="Change Target Folder", command=self.change_movies_target)
+        self.movies_change_target_button.pack(pady=5)
+
+
+        # Listbox and move button
         self.subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
 
         self.listbox = tk.Listbox(self.movies_tab)
@@ -145,6 +157,14 @@ class ImageMoveGUI(tk.Tk):
             with open('./config.ini', 'w') as configfile:
                 self.config.write(configfile)
             self.refresh_folder_list()  # Call the refresh function after changing the source folder
+    def change_movies_target(self):
+        new_target_folder = tk.filedialog.askdirectory()
+        if new_target_folder:
+            self.target_folder_movies = new_target_folder
+            self.config['Paths']['movies_target_folder'] = new_target_folder
+            self.movies_target_var.set(new_target_folder)
+            with open('./config.ini', 'w') as configfile:
+                self.config.write(configfile)
 
     def change_tv_series_source(self):
         new_source_folder = tk.filedialog.askdirectory()
