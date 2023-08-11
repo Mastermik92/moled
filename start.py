@@ -11,6 +11,40 @@ import configparser
 import tkinter.filedialog
 from crontab import CronTab
 print("Start")
+# Determine the script's location
+script_location = os.path.abspath(__file__)
+id = "moviemover"
+def is_script_already_added(cron, id):
+    for job in cron:
+        print("Script keresese: ",job.comment)
+        if id in job.comment:
+            print("Script megtalalva")
+            return True
+    return False
+def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=False):
+    print("create_crontab_entry()")
+    print("script_location ",script_location)
+    print("crontab_expression ",crontab_expression)
+    crontab_entry = f"{crontab_expression} /usr/bin/env python3 {script_location}"
+
+    with os.popen('crontab -l') as crontab_file:
+        existing_crontab = crontab_file.read()
+    # Split the existing crontab into lines
+    lines = existing_crontab.strip().split('\n')
+    
+    if edit_mode:
+        # Remove the old crontab entry, if exists
+        lines = [line for line in lines if id not in line]
+    
+    # Append the new crontab entry
+    lines.append(crontab_entry + ' #' + id + '\n')
+    
+    # Join the lines and write back to crontab
+    new_crontab = '\n'.join(lines)
+    
+    with os.popen('crontab', 'w') as crontab_file:
+        crontab_file.write(new_crontab)
+
 def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "bmp")):
     subfolders_with_images = []
 
@@ -78,11 +112,14 @@ class PopupWindow:
         example_label = tk.Label(self.popup, text="Example crontab codes:")
         example_label.pack()
 
-        self.example1_label = tk.Label(self.popup, text="Weekly every Friday at 20:00: 0 20 * * 5")
+        self.example1_label = tk.Label(self.popup, text="Every Friday at 20:00: 0 20 * * 5")
         self.example1_label.pack()
 
         self.example2_label = tk.Label(self.popup, text="Every Wednesday and Saturday at 06:00: 0 6 * * 3,6")
         self.example2_label.pack()
+
+        self.information_label = tk.Label(self.popup, text="On linux you can see your crontab entries with: crontab -l")
+        self.information_label.pack()
 
         ok_button = tk.Button(self.popup, text="OK", command=self.validate_and_save_crontab)
         ok_button.pack()
@@ -113,9 +150,9 @@ class PopupWindow:
             print("Exception")
             messagebox.showerror("Validation Error", f"Error: {str(e)}")
         #0 20 * * 5
-    def show_popup(self):
-        # Add contents and layout for the popup window here
-        pass
+    # def show_popup(self):
+    #     # Add contents and layout for the popup window here
+    #     pass
 
 
 #GUI
@@ -196,7 +233,7 @@ class ImageMoveGUI(tk.Tk):
         self.move_button.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="w")
     
  
-        self.ido_button = tk.Button(self.movies_tab, text="Open Popup", command=self.open_popup)
+        self.ido_button = tk.Button(self.movies_tab, text="Crontab Schedule", command=self.open_popup)
         self.ido_button.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
         self.crontab_value = None
@@ -259,37 +296,5 @@ if __name__ == "__main__":
     if app.crontab_value is not None:
         print("Valid crontab expression:", app.crontab_value)
 
-# Determine the script's location
-script_location = os.path.abspath(__file__)
-id = "moviemover"
-def is_script_already_added(cron, id):
-    for job in cron:
-        print("Script keresese: ",job.comment)
-        if id in job.comment:
-            print("Script megtalalva")
-            return True
-    return False
-    
-def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=False):
-    print("create_crontab_entry()")
-    print("script_location ",script_location)
-    print("crontab_expression ",crontab_expression)
-    crontab_entry = f"{crontab_expression} /usr/bin/env python3 {script_location}"
 
-    with os.popen('crontab -l') as crontab_file:
-        existing_crontab = crontab_file.read()
-    # Split the existing crontab into lines
-    lines = existing_crontab.strip().split('\n')
     
-    if edit_mode:
-        # Remove the old crontab entry, if exists
-        lines = [line for line in lines if id not in line]
-    
-    # Append the new crontab entry
-    lines.append(crontab_entry + ' #' + id + '\n')
-    
-    # Join the lines and write back to crontab
-    new_crontab = '\n'.join(lines)
-    
-    with os.popen('crontab', 'w') as crontab_file:
-        crontab_file.write(new_crontab)
