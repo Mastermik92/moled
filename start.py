@@ -13,12 +13,6 @@ import tkinter.filedialog
 #target_folder_original = "~/Downloads/target"
 # Load configuration from config.ini
 print("Start")
-config = configparser.ConfigParser()
-config.read('./config.ini')
-source_folder = config['Paths']['source_folder']
-target_folder = config['Paths']['target_folder']
-print("source_folder ", source_folder)
-print("target_folder ", target_folder)
 def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "bmp")):
     subfolders_with_images = []
 
@@ -55,19 +49,38 @@ def move_random_folders_to_target(source_folder, target_folder, percentage=30):
         destination_path = os.path.join(target_folder, subfolder_name)
 
         # Check if the destination folder already exists
-        if os.path.exists(destination_path):
-            if compare_folders(folder, destination_path):
-                for file in os.listdir(folder):
-                    file_path = os.path.join(folder, file)
-                    shutil.move(file_path, destination_path)
+        if os.path.exists(target_folder) and os.access(target_folder, os.W_OK):
+            if os.path.exists(destination_path):
+                if compare_folders(folder, destination_path):
+                    for file in os.listdir(folder):
+                        file_path = os.path.join(folder, file)
+                        shutil.move(file_path, destination_path)
+            else:
+                shutil.move(folder, destination_path)
         else:
-            shutil.move(folder, destination_path)
+            print("Target folder does not exist or doesn't have write permissions.")
+
+    app.refresh_folder_list()  # Call the refresh function after changing the source folder
 
 #GUI
 
 class ImageMoveGUI(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.config = configparser.ConfigParser()
+
+        # Check if the config file exists
+        if os.path.exists('./config.ini'):
+            self.config.read('./config.ini')
+        else:
+            self._create_default_config()
+        self.config.read('./config.ini')
+        
+        self.source_folder_movies = self.config['Paths']['movies_source_folder']
+        self.target_folder_movies = self.config['Paths']['movies_target_folder']
+
+        print("source_folder ", self.source_folder_movies)
+        print("target_folder ", self.target_folder_movies)
 
 
         self.title("Image Move GUI")
@@ -85,7 +98,7 @@ class ImageMoveGUI(tk.Tk):
         self.notebook.add(self.tv_series_tab, text="TV Series")
         self.notebook.pack(fill="both", expand=True)
 
-        self.source_folder_movies = source_folder  # Replace with your source folder for movies.
+        #self.source_folder_movies = source_folder  # Replace with your source folder for movies.
         self.source_folder_tv_series = "path_to_tv_series"  # Replace with your source folder for TV series.
 
         self.movies_label = tk.Label(self.movies_tab, text="Movies Source Folder:")
@@ -104,12 +117,10 @@ class ImageMoveGUI(tk.Tk):
         self.tv_series_change_button = tk.Button(self.tv_series_tab, text="Change Source Folder", command=self.change_tv_series_source)
         self.tv_series_change_button.pack(pady=5)
 
-        self.subfolders_with_images = find_subfolders_with_images(source_folder)
+        self.subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
 
         self.listbox = tk.Listbox(self.movies_tab)
-        for folder in self.subfolders_with_images:
-            folder_name = os.path.basename(folder)  # Extract the folder name
-            self.listbox.insert(tk.END, folder_name)  # Insert the folder name in the listbox
+        self.refresh_folder_list()  # Call the function to populate the listbox
 
 
         self.move_button = tk.Button(self.movies_tab, text="Move Random Folders Now", command=self.move_folders)
@@ -117,23 +128,49 @@ class ImageMoveGUI(tk.Tk):
         self.listbox.pack(padx=10, pady=10)
         self.move_button.pack(padx=10, pady=5)
 
+    def refresh_folder_list(self):
+        self.subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
+        self.listbox.delete(0, tk.END)  # Clear the listbox
+
+        for folder in self.subfolders_with_images:
+            folder_name = os.path.basename(folder)
+            self.listbox.insert(tk.END, folder_name)
+
     def change_movies_source(self):
         new_source_folder = tk.filedialog.askdirectory()
         if new_source_folder:
             self.source_folder_movies = new_source_folder
+            self.config['Paths']['movies_source_folder'] = new_source_folder
             self.movies_source_var.set(new_source_folder)
+            with open('./config.ini', 'w') as configfile:
+                self.config.write(configfile)
+            self.refresh_folder_list()  # Call the refresh function after changing the source folder
 
     def change_tv_series_source(self):
         new_source_folder = tk.filedialog.askdirectory()
         if new_source_folder:
             self.source_folder_tv_series = new_source_folder
+            self.config['Paths']['tv_source_folder'] = new_source_folder    # Replace this part
             self.tv_series_source_var.set(new_source_folder)
 
     def move_folders(self):
-        move_random_folders_to_target(self.source_folder_movies, target_folder)  # Replace "target" with your target folder.
-        messagebox.showinfo("Move Complete", "Random folders moved!")
+        move_random_folders_to_target(self.source_folder_movies, self.target_folder_movies) 
+        #messagebox.showinfo("Move Complete", "Random folders moved!")
 
-
+    def _create_default_config(self):
+        config = configparser.ConfigParser()
+        config['Paths'] = {
+            'movies_source_folder': '/path/to/source/folder',
+            'movies_target_folder': '/path/to/target/folder'
+        }
+        with open('./config.ini', 'w') as configfile:
+            config.write(configfile)
 if __name__ == "__main__":
     app = ImageMoveGUI()
     app.mainloop()
+    # Later in your code, you want to refresh the folder list:
+    # def some_function():
+    #     # Call the refresh_folder_list function from the ImageMoveGUI instance
+    #     app.refresh_folder_list()
+    # # Call the function to refresh the folder list
+    # some_function()
