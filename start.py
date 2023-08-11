@@ -14,6 +14,7 @@ print("Start")
 # Determine the script's location
 script_location = os.path.abspath(__file__)
 id = "moviemover"
+percentage = 10
 def is_script_already_added(cron, id):
     for job in cron:
         print("Script keresese: ",job.comment)
@@ -69,12 +70,15 @@ def compare_folders(source_folder, destination_folder):
 
     return not source_files.intersection(destination_files)
 
-def move_random_folders_to_target(source_folder, target_folder, percentage=30):
+def move_random_folders_to_target(source_folder, target_folder, percentage):
     subfolders_with_images = find_subfolders_with_images(source_folder)
 
 
-    num_folders_to_move = math.ceil(len(subfolders_with_images) * percentage / 100)
+    num_folders_to_move = math.ceil(len(subfolders_with_images) * int(percentage) / 100)
+    print("all folders: ",len(subfolders_with_images))
+    print("percentage: ",int(percentage) / 100)
     selected_folders = random.sample(subfolders_with_images, num_folders_to_move)
+    print("chosen folders: ",selected_folders)
 
     for folder in selected_folders:
         subfolder_name = os.path.relpath(folder, source_folder)
@@ -96,11 +100,16 @@ def move_random_folders_to_target(source_folder, target_folder, percentage=30):
 
 
 class PopupWindow:
-    def __init__(self, parent):
+    def __init__(self, parent, title):
+        
+        
         self.parent = parent
         self.popup = tk.Toplevel(parent)
-        self.popup.title("Popup Window")
+        self.popup.title(title)
+        # self.popup.title("Popup Window")
 
+    def crontab_popup(self):
+        # Add contents and layout for the popup window here
         self.crontab_value = tk.StringVar()
 
         self.label = tk.Label(self.popup, text="Custom crontab time code:")
@@ -123,6 +132,25 @@ class PopupWindow:
 
         ok_button = tk.Button(self.popup, text="OK", command=self.validate_and_save_crontab)
         ok_button.pack()
+
+    def percentage_popup(self):
+        self.percentage_value = tk.StringVar()
+        self.example1_label = tk.Label(self.popup, text="Set the percentage of folders that will be moved")
+        self.example1_label.pack()
+        self.perc_entry = tk.Entry(self.popup, textvariable=self.percentage_value)
+        self.perc_entry.pack()
+        ok_button = tk.Button(self.popup, text="OK", command=self.save_percentage)
+        ok_button.pack()
+             
+    def save_percentage(self):
+        percentage = self.percentage_value.get()
+        if percentage.isdigit() and 1 <= int(percentage) <= 100:
+            print("percentage ",percentage)
+            percentage = percentage
+            self.popup.destroy()
+        else:
+            messagebox.showerror("Validation Error", f"The value should be between 1 and 100")
+            
 
     def validate_and_save_crontab(self):
         crontab_expression = self.crontab_value.get()
@@ -150,9 +178,6 @@ class PopupWindow:
             print("Exception")
             messagebox.showerror("Validation Error", f"Error: {str(e)}")
         #0 20 * * 5
-    # def show_popup(self):
-    #     # Add contents and layout for the popup window here
-    #     pass
 
 
 #GUI
@@ -169,10 +194,12 @@ class ImageMoveGUI(tk.Tk):
         self.config.read('./config.ini')
         
         self.source_folder_movies = self.config['Paths']['movies_source_folder']
-        self.target_folder_movies = self.config['Paths']['movies_target_folder']
+        self.target_folder_movies = self.config['Paths']['movies_target_folder'] 
+        self.percentage = self.config['Settings']['movies_percentage'] 
 
         print("source_folder ", self.source_folder_movies)
         print("target_folder ", self.target_folder_movies)
+        print("percentage ", self.percentage)
 
 
         self.title("Image Move GUI")
@@ -224,24 +251,29 @@ class ImageMoveGUI(tk.Tk):
         self.subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
 
         self.listbox = tk.Listbox(self.movies_tab)
-        self.refresh_folder_list()  # Call the function to populate the listbox
-
-
-        self.move_button = tk.Button(self.movies_tab, text="Move Random Folders Now", command=self.move_folders)
-
+        self.refresh_folder_list()  # Call the function to populate the listbox        
         self.listbox.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="w")
-        self.move_button.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="w")
-    
- 
-        self.ido_button = tk.Button(self.movies_tab, text="Crontab Schedule", command=self.open_popup)
-        self.ido_button.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        
+        self.refresh_button = tk.Button(self.movies_tab, text="Refresh", command=self.refresh_folder_list)
+        self.refresh_button.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="w")
+            
+        self.move_button = tk.Button(self.movies_tab, text="Move Random Folders Now", command=self.move_folders)
+        self.move_button.grid(row=4, column=0, columnspan=3, padx=10, pady=5, sticky="w")
+
+        self.percentage_button = tk.Button(self.movies_tab, text=str("Move "+self.percentage +"%"), command=self.open_percentage_popup)
+        self.percentage_button.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+        self.ido_button = tk.Button(self.movies_tab, text="Crontab Schedule", command=self.open_crontab_popup)
+        self.ido_button.grid(row=3, column=1, padx=10, pady=5, sticky="w")
 
         self.crontab_value = None
 
-    def open_popup(self):
-        popup = PopupWindow(self)  # Create an instance of PopupWindow
-        popup.show_popup()
-
+    def open_crontab_popup(self):
+        crontab_popup = PopupWindow(self, "Edit/Add crontab schedule")  # Create an instance of PopupWindow
+        crontab_popup.crontab_popup()
+    def open_percentage_popup(self):
+        percentage_popup = PopupWindow(self, "Modify the percentage")  # Create an instance of PopupWindow
+        percentage_popup.percentage_popup()
     def refresh_folder_list(self):
         self.subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
         self.listbox.delete(0, tk.END)  # Clear the listbox
@@ -276,9 +308,8 @@ class ImageMoveGUI(tk.Tk):
             self.source_folder_tv_series = new_source_folder
             self.config['Paths']['tv_source_folder'] = new_source_folder    # Replace this part
             self.tv_series_source_var.set(new_source_folder)
-
     def move_folders(self):
-        move_random_folders_to_target(self.source_folder_movies, self.target_folder_movies) 
+        move_random_folders_to_target(self.source_folder_movies, self.target_folder_movies,percentage) 
         #messagebox.showinfo("Move Complete", "Random folders moved!")
 
     def _create_default_config(self):
@@ -286,6 +317,9 @@ class ImageMoveGUI(tk.Tk):
         config['Paths'] = {
             'movies_source_folder': '/path/to/source/folder',
             'movies_target_folder': '/path/to/target/folder'
+        }
+        config['Settings'] = {
+            'movies_percentage': 30
         }
         with open('./config.ini', 'w') as configfile:
             config.write(configfile)
