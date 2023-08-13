@@ -14,7 +14,6 @@ print("Start")
 # Determine the script's location
 script_location = os.path.abspath(__file__)
 id = "moviemover"
-percentage = 10
 def is_script_already_added(cron, id):
     for job in cron:
         print("Script keresese: ",job.comment)
@@ -100,9 +99,17 @@ def move_random_folders_to_target(source_folder, target_folder, percentage):
 
 
 class PopupWindow:
-    def __init__(self, parent, title):
+    def __init__(self, parent, title, percentage):
+        self.config = configparser.ConfigParser()
         
+        # Check if the config file exists
+        if os.path.exists('./config.ini'):
+            self.config.read('./config.ini')
+        else:
+            self._create_default_config()
+        self.config.read('./config.ini')
         
+        self.percentage = percentage
         self.parent = parent
         self.popup = tk.Toplevel(parent)
         self.popup.title(title)
@@ -143,13 +150,30 @@ class PopupWindow:
         ok_button.pack()
              
     def save_percentage(self):
-        percentage = self.percentage_value.get()
-        if percentage.isdigit() and 1 <= int(percentage) <= 100:
-            print("percentage ",percentage)
-            percentage = percentage
+        new_percentage = self.percentage_value.get()
+        if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
+            print("new percentage ",new_percentage)
+            self.parent.percentage = new_percentage  # Update the shared percentage value
+            self.parent.percentage_value = new_percentage  # Update the shared percentage value
+
+            
+            #percentage = new_percentage
+            self.config['Settings']['movies_percentage'] = new_percentage
+            with open('./config.ini', 'w') as configfile:
+                self.config.write(configfile)
             self.popup.destroy()
+            app.refresh_perc()
+            #self.percentage = self.percentage_value.get()
+            #print("self.percentage ",self.percentage)
+            #print("percentage ",percentage)
+           # print("new percentage ",new_percentage)
+
+            #print("self.percentage_value ",self.percentage_value)
+
+          #  return percentage
         else:
             messagebox.showerror("Validation Error", f"The value should be between 1 and 100")
+        
             
 
     def validate_and_save_crontab(self):
@@ -272,7 +296,7 @@ class ImageMoveGUI(tk.Tk):
         crontab_popup = PopupWindow(self, "Edit/Add crontab schedule")  # Create an instance of PopupWindow
         crontab_popup.crontab_popup()
     def open_percentage_popup(self):
-        percentage_popup = PopupWindow(self, "Modify the percentage")  # Create an instance of PopupWindow
+        percentage_popup = PopupWindow(self, "Modify the percentage", self.percentage)  # Create an instance of PopupWindow
         percentage_popup.percentage_popup()
     def refresh_folder_list(self):
         self.subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
@@ -281,7 +305,8 @@ class ImageMoveGUI(tk.Tk):
         for folder in self.subfolders_with_images:
             folder_name = os.path.basename(folder)
             self.listbox.insert(tk.END, folder_name)
-
+    def refresh_perc(self):
+        self.percentage_button.config(text=str("Move " + self.percentage + "%"))  # Update the percentage button text
     def change_movies_source(self):
         new_source_folder = tk.filedialog.askdirectory()
         if new_source_folder:
@@ -309,9 +334,10 @@ class ImageMoveGUI(tk.Tk):
             self.config['Paths']['tv_source_folder'] = new_source_folder    # Replace this part
             self.tv_series_source_var.set(new_source_folder)
     def move_folders(self):
-        move_random_folders_to_target(self.source_folder_movies, self.target_folder_movies,percentage) 
+        print("move_folders percentage ", self.percentage)
+        move_random_folders_to_target(self.source_folder_movies, self.target_folder_movies,self.percentage) 
         #messagebox.showinfo("Move Complete", "Random folders moved!")
-
+        
     def _create_default_config(self):
         config = configparser.ConfigParser()
         config['Paths'] = {
