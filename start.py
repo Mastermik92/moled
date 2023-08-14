@@ -10,21 +10,62 @@ from tkinter import ttk
 import configparser
 import tkinter.filedialog
 from crontab import CronTab
+import sys
 print("Start")
+
+
 # Determine the script's location
 script_location = os.path.abspath(__file__)
-id = "moviemover"
-def is_script_already_added(cron, id):
+script_folder = os.path.dirname(os.path.abspath(__file__))
+print("Script location ",script_location)
+id = 1
+arg1 = "moviemover"
+
+def main():
+    print("main")
+    cron = CronTab(user=True)
+    # if is_script_already_added(cron, arg1) == False:
+    #     print("Schedule does not exists in crontab")
+    # else:
+    config = configparser.ConfigParser()
+
+    # Check if the config file exists
+    if os.path.exists(str(script_folder + "/config.ini")):
+        config.read(str(script_folder + "/config.ini"))
+
+        print("searcjhhh ", str("library " + str(id) + "source folder"))
+        source_folder_movies = config['Paths'][str("library_" + str(id) + "_source_folder")]
+        target_folder_movies = config['Paths'][str("library_" + str(id) + "_target_folder")] 
+        percentage = config['Settings'][str("library_" + str(id) + "_percentage")] 
+
+        print("source_folder ", source_folder_movies)
+        print("target_folder ", target_folder_movies)
+        print("percentage ", percentage)
+        move_random_folders_to_target(source_folder_movies,target_folder_movies,percentage)
+    else:
+        print("Config file is not available at ./config.ini")
+def write_to_document(custom_line):
+    with open(str(script_folder + "/dk.txt"), 'a') as file:
+        file.write(custom_line + '\n')
+
+
+
+def is_script_already_added(cron, arg1):
+    write_to_document("is_script_already_added")
+    ide = str(id) + " " + arg1
+    print("search for ",ide)
     for job in cron:
         print("Script keresese: ",job.comment)
-        if id in job.comment:
+        if ide in job.comment:
             print("Script megtalalva")
             return True
     return False
 def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=False):
+    write_to_document("create_crontab_entry")
     print("create_crontab_entry()")
     print("script_location ",script_location)
     print("crontab_expression ",crontab_expression)
+    print("id ",id)
     crontab_entry = f"{crontab_expression} /usr/bin/env python3 {script_location}"
 
     with os.popen('crontab -l') as crontab_file:
@@ -34,10 +75,10 @@ def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=Fa
     
     if edit_mode:
         # Remove the old crontab entry, if exists
-        lines = [line for line in lines if id not in line]
+        lines = [line for line in lines if arg1 not in line]
     
     # Append the new crontab entry
-    lines.append(crontab_entry + ' #' + id + '\n')
+    lines.append(crontab_entry + " " + str(id) + ' #' + str(id) + " " + arg1 + '\n')
     
     # Join the lines and write back to crontab
     new_crontab = '\n'.join(lines)
@@ -46,6 +87,7 @@ def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=Fa
         crontab_file.write(new_crontab)
 
 def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "bmp")):
+    write_to_document("find_subfolders_with_images")
     subfolders_with_images = []
 
     for root, dirs, files in os.walk(folder_path):
@@ -64,18 +106,20 @@ def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "b
 
     return subfolders_with_images
 def compare_folders(source_folder, destination_folder):
+    write_to_document("compare_folders")
     source_files = set(os.listdir(source_folder))
     destination_files = set(os.listdir(destination_folder))
 
     return not source_files.intersection(destination_files)
 
 def move_random_folders_to_target(source_folder, target_folder, percentage):
+    write_to_document("move_random_folders_to_target")
     subfolders_with_images = find_subfolders_with_images(source_folder)
 
 
     num_folders_to_move = math.ceil(len(subfolders_with_images) * int(percentage) / 100)
     print("all folders: ",len(subfolders_with_images))
-    print("percentage: ",int(percentage) / 100)
+    print("percentage: ",int(percentage))
     selected_folders = random.sample(subfolders_with_images, num_folders_to_move)
     print("chosen folders: ",selected_folders)
 
@@ -100,14 +144,15 @@ def move_random_folders_to_target(source_folder, target_folder, percentage):
 
 class PopupWindow:
     def __init__(self, parent, title, percentage):
+        write_to_document("__init__Popup")
         self.config = configparser.ConfigParser()
         
         # Check if the config file exists
-        if os.path.exists('./config.ini'):
-            self.config.read('./config.ini')
+        if os.path.exists(str(script_folder + "/config.ini")):
+            self.config.read(str(script_folder + "/config.ini"))
         else:
             self._create_default_config()
-        self.config.read('./config.ini')
+        self.config.read(str(script_folder + "/config.ini"))
         
         self.percentage = percentage
         self.parent = parent
@@ -116,6 +161,7 @@ class PopupWindow:
         # self.popup.title("Popup Window")
 
     def crontab_popup(self):
+        write_to_document("crontab_popup")
         # Add contents and layout for the popup window here
         self.crontab_value = tk.StringVar()
 
@@ -141,6 +187,7 @@ class PopupWindow:
         ok_button.pack()
 
     def percentage_popup(self):
+        write_to_document("percentage_popup")
         self.percentage_value = tk.StringVar()
         self.example1_label = tk.Label(self.popup, text="Set the percentage of folders that will be moved")
         self.example1_label.pack()
@@ -150,6 +197,7 @@ class PopupWindow:
         ok_button.pack()
              
     def save_percentage(self):
+        write_to_document("save_percentage")
         new_percentage = self.percentage_value.get()
         if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
             print("new percentage ",new_percentage)
@@ -158,25 +206,18 @@ class PopupWindow:
 
             
             #percentage = new_percentage
-            self.config['Settings']['movies_percentage'] = new_percentage
-            with open('./config.ini', 'w') as configfile:
+            self.config['Settings'][str("library_" + str(id) + "_percentage")] = new_percentage
+            with open(str(script_folder + "/config.ini"), 'w') as configfile:
                 self.config.write(configfile)
             self.popup.destroy()
             app.refresh_perc()
-            #self.percentage = self.percentage_value.get()
-            #print("self.percentage ",self.percentage)
-            #print("percentage ",percentage)
-           # print("new percentage ",new_percentage)
-
-            #print("self.percentage_value ",self.percentage_value)
-
-          #  return percentage
         else:
             messagebox.showerror("Validation Error", f"The value should be between 1 and 100")
         
             
 
     def validate_and_save_crontab(self):
+        write_to_document("validate_and_save_crontab")
         crontab_expression = self.crontab_value.get()
         print("Okés22")
         ## Using the current user
@@ -193,7 +234,7 @@ class PopupWindow:
                 self.popup.destroy()
                 print("script_location ",script_location)
                 print("crontab_expression ",crontab_expression)
-                if is_script_already_added(cron, id):
+                if is_script_already_added(cron, arg1):
                     create_crontab_entry(script_location, crontab_expression, cron, True)
                 else:
                     create_crontab_entry(script_location, crontab_expression, cron)
@@ -207,19 +248,20 @@ class PopupWindow:
 #GUI
 class ImageMoveGUI(tk.Tk):
     def __init__(self):
+        write_to_document("__init__ IMAGEGUI")
         super().__init__()
         self.config = configparser.ConfigParser()
 
         # Check if the config file exists
-        if os.path.exists('./config.ini'):
-            self.config.read('./config.ini')
+        if os.path.exists(str(script_folder + "/config.ini")):
+            self.config.read(str(script_folder + "/config.ini"))
         else:
             self._create_default_config()
-        self.config.read('./config.ini')
+        self.config.read(str(script_folder + "/config.ini"))
         
-        self.source_folder_movies = self.config['Paths']['movies_source_folder']
-        self.target_folder_movies = self.config['Paths']['movies_target_folder'] 
-        self.percentage = self.config['Settings']['movies_percentage'] 
+        self.source_folder_movies = self.config['Paths'][str("library_" + str(id) + "_source_folder")]
+        self.target_folder_movies = self.config['Paths'][str("library_" + str(id) + "_target_folder")] 
+        self.percentage = self.config['Settings'][str("library_" + str(id) + "_percentage")] 
 
         print("source_folder ", self.source_folder_movies)
         print("target_folder ", self.target_folder_movies)
@@ -293,12 +335,15 @@ class ImageMoveGUI(tk.Tk):
         self.crontab_value = None
 
     def open_crontab_popup(self):
-        crontab_popup = PopupWindow(self, "Edit/Add crontab schedule")  # Create an instance of PopupWindow
+        write_to_document("open_crontab_popup")
+        crontab_popup = PopupWindow(self, "Edit/Add crontab schedule", self.percentage)  # Create an instance of PopupWindow
         crontab_popup.crontab_popup()
     def open_percentage_popup(self):
+        write_to_document("open_percentage_popup")
         percentage_popup = PopupWindow(self, "Modify the percentage", self.percentage)  # Create an instance of PopupWindow
         percentage_popup.percentage_popup()
     def refresh_folder_list(self):
+        write_to_document("refresh_folder_list")
         self.subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
         self.listbox.delete(0, tk.END)  # Clear the listbox
 
@@ -306,50 +351,74 @@ class ImageMoveGUI(tk.Tk):
             folder_name = os.path.basename(folder)
             self.listbox.insert(tk.END, folder_name)
     def refresh_perc(self):
+        write_to_document("refresh_perc")
         self.percentage_button.config(text=str("Move " + self.percentage + "%"))  # Update the percentage button text
     def change_movies_source(self):
+        write_to_document("change_movies_source")
         new_source_folder = tk.filedialog.askdirectory()
         if new_source_folder:
             self.source_folder_movies = new_source_folder
-            self.config['Paths']['movies_source_folder'] = new_source_folder
+            self.config['Paths'][str("library_" + str(id) + "_source_folder")] = new_source_folder
             self.movies_source_var.set(new_source_folder)
-            with open('./config.ini', 'w') as configfile:
+            with open(str(script_folder + "/config.ini"), 'w') as configfile:
                 self.config.write(configfile)
             self.movies_change_button.config(text=new_source_folder)
             self.refresh_folder_list()  # Call the refresh function after changing the source folder
     def change_movies_target(self):
+        write_to_document("change_movies_target")
         new_target_folder = tk.filedialog.askdirectory()
         if new_target_folder:
             self.target_folder_movies = new_target_folder
-            self.config['Paths']['movies_target_folder'] = new_target_folder
+            self.config['Paths'][str("library_" + str(id) + "_target_folder")] = new_target_folder
             self.movies_target_var.set(new_target_folder)
-            with open('./config.ini', 'w') as configfile:
+            with open(str(script_folder + "/config.ini"), 'w') as configfile:
                 self.config.write(configfile)
             self.movies_change_target_button.config(text=new_target_folder)
 
     def change_tv_series_source(self):
+        write_to_document("change_tv_series_source")
         new_source_folder = tk.filedialog.askdirectory()
         if new_source_folder:
             self.source_folder_tv_series = new_source_folder
             self.config['Paths']['tv_source_folder'] = new_source_folder    # Replace this part
             self.tv_series_source_var.set(new_source_folder)
     def move_folders(self):
+        write_to_document("move_folders")
         print("move_folders percentage ", self.percentage)
         move_random_folders_to_target(self.source_folder_movies, self.target_folder_movies,self.percentage) 
         #messagebox.showinfo("Move Complete", "Random folders moved!")
         
     def _create_default_config(self):
+        write_to_document("_create_default_config")
         config = configparser.ConfigParser()
         config['Paths'] = {
-            'movies_source_folder': '/path/to/source/folder',
-            'movies_target_folder': '/path/to/target/folder'
+            'library_1_source_folder': '/path/to/source/folder',
+            'library_1_target_folder': '/path/to/target/folder'
         }
         config['Settings'] = {
-            'movies_percentage': 30
+            'library_1_percentage': 30
         }
-        with open('./config.ini', 'w') as configfile:
+        with open(str(script_folder + "/config.ini"), 'w') as configfile:
             config.write(configfile)
+
+
+
+def check_argument():
+    write_to_document("check_argument")
+    if len(sys.argv) > 1:
+        argument = sys.argv[1]
+        print(f"Script started with argument: {argument}")
+        try:
+            if int(argument) > 0:   #Check if the argument is valid
+                print("Start moving the library",argument)
+                id = argument
+                main()
+        except: #is not valid
+            print("Argument should be the ID number of the library")
+    else:
+        print("Script started without any arguments. It should have started with: script librarynumber")
 if __name__ == "__main__":
+    check_argument()
     app = ImageMoveGUI()
     app.mainloop()
 
@@ -357,4 +426,3 @@ if __name__ == "__main__":
         print("Valid crontab expression:", app.crontab_value)
 
 
-    
