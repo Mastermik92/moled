@@ -18,10 +18,10 @@ print("Start")
 script_location = os.path.abspath(__file__)
 script_folder = os.path.dirname(os.path.abspath(__file__))
 print("Script location ",script_location)
-id = 1
-arg1 = "moviemover"
+id = 1  #Library number
+arg1 = "moviemover" #String to identify in the crontab table 
 
-def main():
+def main(): #If the script started with argument, this function will run
     print("main")
     cron = CronTab(user=True)
     # if is_script_already_added(cron, arg1) == False:
@@ -44,10 +44,17 @@ def main():
         move_random_folders_to_target(source_folder_movies,target_folder_movies,percentage)
     else:
         print("Config file is not available at ./config.ini")
-def write_to_document(custom_line):
-    with open(str(script_folder + "/dk.txt"), 'a') as file:
+def write_to_document(custom_line): #Logging
+    with open(str(script_folder + "/Log.txt"), 'a') as file:
         file.write(custom_line + '\n')
-
+    limit_log_lines(str(script_folder + "/Log.txt"), max_lines=1000)
+def limit_log_lines(log_file_path, max_lines):  #limit the size of the log file
+    lines = []
+    with open(log_file_path, 'r') as file:
+        lines = file.readlines()
+    if len(lines) > max_lines:
+        with open(log_file_path, 'w') as file:
+            file.writelines(lines[-max_lines:])
 
 
 def is_script_already_added(cron, arg1):
