@@ -11,6 +11,7 @@ import configparser
 import tkinter.filedialog
 from crontab import CronTab
 import sys
+import datetime
 
 print("Start")
 
@@ -21,37 +22,50 @@ script_folder = os.path.dirname(os.path.abspath(__file__))
 print("Script location ", script_location)
 id = 1  # Library number
 arg1 = "moviemover"  # String to identify in the crontab table
+percentage = 30
+source_folder = "path/to/source"
+target_folder = "path/to/target"
 
 
 def main():  # If the script started with argument, this function will run
     print("main")
-    cron = CronTab(user=True)
+    write_to_document("main")
+    # cron = CronTab(user=True)
     config = configparser.ConfigParser()
 
     # Check if the config file exists
     if os.path.exists(str(script_folder + "/config.ini")):
         config.read(str(script_folder + "/config.ini"))
+        global percentage, source_folder, target_folder
 
         print("searcjhhh ", str("library " + str(id) + "source folder"))
-        source_folder_movies = config["Paths"][
-            str("library_" + str(id) + "_source_folder")
-        ]
-        target_folder_movies = config["Paths"][
-            str("library_" + str(id) + "_target_folder")
-        ]
+        source_folder = config["Paths"][str("library_" + str(id) + "_source_folder")]
+        target_folder = config["Paths"][str("library_" + str(id) + "_target_folder")]
         percentage = config["Settings"][str("library_" + str(id) + "_percentage")]
 
-        print("source_folder ", source_folder_movies)
-        print("target_folder ", target_folder_movies)
+        print("source_folder ", source_folder)
+        print("target_folder ", target_folder)
         print("percentage ", percentage)
-        app.move_folders()
+        move_folders()
     else:
         print("Config file is not available at ./config.ini")
 
 
 def write_to_document(custom_line):  # Logging
+    current_datetime = datetime.datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M")
     with open(str(script_folder + "/Log.txt"), "a") as file:
-        file.write(custom_line + "\n")
+        file.write(
+            str(
+                "Library "
+                + str(id)
+                + " "
+                + formatted_datetime
+                + " "
+                + custom_line
+                + "\n"
+            )
+        )
     limit_log_lines(str(script_folder + "/Log.txt"), max_lines=1000)
 
 
@@ -136,6 +150,19 @@ def compare_folders(source_folder, destination_folder):
     return not source_files.intersection(destination_files)
 
 
+def move_folders():
+    write_to_document("move_folders")
+    print("move_folders percentage ", percentage)
+
+    subfolders_with_images = find_subfolders_with_images(source_folder)
+    num_folders_to_move = math.ceil(len(subfolders_with_images) * int(percentage) / 100)
+    print("all folders: ", len(subfolders_with_images))
+    print("percentage: ", int(percentage))
+    selected_folders = random.sample(subfolders_with_images, num_folders_to_move)
+    print("chosen folders: ", selected_folders)
+    move_folders_to_target(source_folder, target_folder, selected_folders)
+
+
 def move_folders_to_target(source_folder, target_folder, selected_folders):
     write_to_document("move_folders_to_target")
 
@@ -158,10 +185,10 @@ def move_folders_to_target(source_folder, target_folder, selected_folders):
 
 
 class PopupWindow:
-    def __init__(self, parent, title, percentage):
+    def __init__(self, parent, title, percentage_n):
         write_to_document("__init__Popup")
         self.config = configparser.ConfigParser()
-
+        global percentage
         # Check if the config file exists
         if os.path.exists(str(script_folder + "/config.ini")):
             self.config.read(str(script_folder + "/config.ini"))
@@ -169,7 +196,7 @@ class PopupWindow:
             self._create_default_config()
         self.config.read(str(script_folder + "/config.ini"))
 
-        self.percentage = percentage
+        self.percentage = percentage = percentage_n
         self.parent = parent
         self.popup = tk.Toplevel(parent)
         self.popup.title(title)
@@ -224,6 +251,7 @@ class PopupWindow:
 
     def save_percentage(self):
         write_to_document("save_percentage")
+        global percentage
         new_percentage = self.percentage_value.get()
         if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
             print("new percentage ", new_percentage)
@@ -233,7 +261,7 @@ class PopupWindow:
             self.parent.percentage_value = (
                 new_percentage  # Update the shared percentage value
             )
-
+            percentage = new_percentage
             # percentage = new_percentage
             self.config["Settings"][
                 str("library_" + str(id) + "_percentage")
@@ -258,7 +286,9 @@ class PopupWindow:
             print("try2")
             if len(crontab_expression) == 0:
                 print("len")
-                messagebox.showerror("Validation Error", "Invalid crontab expression.")
+                messagebox.showerror(
+                    "Validation Error", "Crontab entry did not get updated"
+                )
             else:
                 print("else")
                 self.parent.crontab_value = crontab_expression
@@ -284,6 +314,7 @@ class ImageMoveGUI(tk.Tk):
         write_to_document("__init__ IMAGEGUI")
         super().__init__()
         self.config = configparser.ConfigParser()
+        global percentage, source_folder, target_folder
 
         # Check if the config file exists
         if os.path.exists(str(script_folder + "/config.ini")):
@@ -292,18 +323,18 @@ class ImageMoveGUI(tk.Tk):
             self._create_default_config()
         self.config.read(str(script_folder + "/config.ini"))
 
-        self.source_folder_movies = self.config["Paths"][
+        self.source_folder = source_folder = self.config["Paths"][
             str("library_" + str(id) + "_source_folder")
         ]
-        self.target_folder_movies = self.config["Paths"][
+        self.target_folder = target_folder = self.config["Paths"][
             str("library_" + str(id) + "_target_folder")
         ]
-        self.percentage = self.config["Settings"][
+        self.percentage = percentage = self.config["Settings"][
             str("library_" + str(id) + "_percentage")
         ]
 
-        print("source_folder ", self.source_folder_movies)
-        print("target_folder ", self.target_folder_movies)
+        print("source_folder ", self.source_folder)
+        print("target_folder ", self.target_folder)
         print("percentage ", self.percentage)
 
         self.title("Image Move GUI")
@@ -319,7 +350,7 @@ class ImageMoveGUI(tk.Tk):
         self.notebook.add(self.tv_series_tab, text="Create New Library")
         self.notebook.pack(fill="both", expand=True)
 
-        # self.source_folder_movies = source_folder  # Replace with your source folder for movies.
+        # self.source_folder = source_folder  # Replace with your source folder for movies.
         self.source_folder_tv_series = (
             "path_to_tv_series"  # Replace with your source folder for TV series.
         )
@@ -327,10 +358,10 @@ class ImageMoveGUI(tk.Tk):
         # Source folder section
         self.movies_label = tk.Label(self.movies_tab, text="Source Folder (copy from)")
         self.movies_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        self.movies_source_var = tk.StringVar(value=self.source_folder_movies)
+        self.movies_source_var = tk.StringVar(value=self.source_folder)
         self.movies_change_button = tk.Button(
             self.movies_tab,
-            text=self.source_folder_movies,
+            text=self.source_folder,
             command=self.change_movies_source,
         )
         self.movies_change_button.grid(row=1, column=0, padx=10, pady=5, sticky="w")
@@ -339,11 +370,11 @@ class ImageMoveGUI(tk.Tk):
         self.movies_target_label = tk.Label(
             self.movies_tab, text="Target Folder (copy to): "
         )
-        self.movies_target_var = tk.StringVar(value=self.target_folder_movies)
+        self.movies_target_var = tk.StringVar(value=self.target_folder)
         self.movies_target_label.grid(row=0, column=1, padx=10, pady=5, sticky="w")
         self.movies_change_target_button = tk.Button(
             self.movies_tab,
-            text=self.target_folder_movies,
+            text=self.target_folder,
             command=self.change_movies_target,
         )
         self.movies_change_target_button.grid(
@@ -369,9 +400,7 @@ class ImageMoveGUI(tk.Tk):
         self.tv_series_change_button.pack(pady=5)
 
         # Listbox and move button
-        self.subfolders_with_images = find_subfolders_with_images(
-            self.source_folder_movies
-        )
+        self.subfolders_with_images = find_subfolders_with_images(self.source_folder)
 
         self.listbox = tk.Listbox(self.movies_tab, selectmode=tk.MULTIPLE)
         self.refresh_folder_list()  # Call the function to populate the listbox
@@ -394,7 +423,7 @@ class ImageMoveGUI(tk.Tk):
         )
 
         self.move_button = tk.Button(
-            self.movies_tab, text="Move Random Folders Now", command=self.move_folders
+            self.movies_tab, text="Move Random Folders Now", command=move_folders
         )
         self.move_button.grid(
             row=5, column=0, columnspan=3, padx=10, pady=5, sticky="w"
@@ -414,33 +443,10 @@ class ImageMoveGUI(tk.Tk):
 
         self.crontab_value = None
 
-    def move_selected_folders(self):
-        selected_indices = self.listbox.curselection()  # Get indices of selected items
-        selected_folders = [
-            self.subfolders_with_images[idx] for idx in selected_indices
-        ]
-        move_folders_to_target(
-            self.source_folder_movies, self.target_folder_movies, selected_folders
+        self.log_button = tk.Button(
+            self.movies_tab, text="View Log Entries", command=self.open_log_popup
         )
-
-        # for folder in selected_folders:
-        #     print("Moving:", folder)
-
-    def move_folders(self):
-        write_to_document("move_folders")
-        print("move_folders percentage ", self.percentage)
-
-        subfolders_with_images = find_subfolders_with_images(self.source_folder_movies)
-        num_folders_to_move = math.ceil(
-            len(subfolders_with_images) * int(self.percentage) / 100
-        )
-        print("all folders: ", len(subfolders_with_images))
-        print("percentage: ", int(self.percentage))
-        selected_folders = random.sample(subfolders_with_images, num_folders_to_move)
-        print("chosen folders: ", selected_folders)
-        move_folders_to_target(
-            self.source_folder_movies, self.target_folder_movies, selected_folders
-        )
+        self.log_button.grid(row=4, column=1, columnspan=3, padx=10, pady=5, sticky="w")
 
     def open_crontab_popup(self):
         write_to_document("open_crontab_popup")
@@ -458,9 +464,7 @@ class ImageMoveGUI(tk.Tk):
 
     def refresh_folder_list(self):
         write_to_document("refresh_folder_list")
-        self.subfolders_with_images = find_subfolders_with_images(
-            self.source_folder_movies
-        )
+        self.subfolders_with_images = find_subfolders_with_images(self.source_folder)
         self.listbox.delete(0, tk.END)  # Clear the listbox
 
         for folder in self.subfolders_with_images:
@@ -477,11 +481,13 @@ class ImageMoveGUI(tk.Tk):
         write_to_document("change_movies_source")
         new_source_folder = tk.filedialog.askdirectory()
         if new_source_folder:
-            self.source_folder_movies = new_source_folder
+            global source_folder
+            self.source_folder = new_source_folder
             self.config["Paths"][
                 str("library_" + str(id) + "_source_folder")
             ] = new_source_folder
             self.movies_source_var.set(new_source_folder)
+            source_folder = new_source_folder
             with open(str(script_folder + "/config.ini"), "w") as configfile:
                 self.config.write(configfile)
             self.movies_change_button.config(text=new_source_folder)
@@ -491,11 +497,13 @@ class ImageMoveGUI(tk.Tk):
         write_to_document("change_movies_target")
         new_target_folder = tk.filedialog.askdirectory()
         if new_target_folder:
-            self.target_folder_movies = new_target_folder
+            global target_folder
+            self.target_folder = new_target_folder
             self.config["Paths"][
                 str("library_" + str(id) + "_target_folder")
             ] = new_target_folder
             self.movies_target_var.set(new_target_folder)
+            target_folder = new_target_folder
             with open(str(script_folder + "/config.ini"), "w") as configfile:
                 self.config.write(configfile)
             self.movies_change_target_button.config(text=new_target_folder)
@@ -514,12 +522,55 @@ class ImageMoveGUI(tk.Tk):
         write_to_document("_create_default_config")
         config = configparser.ConfigParser()
         config["Paths"] = {
-            "library_1_source_folder": "/path/to/source/folder",
-            "library_1_target_folder": "/path/to/target/folder",
+            str("library_" + str(id) + "_source_folder"): "/path/to/source/folder",
+            str("library_" + str(id) + "_target_folder"): "/path/to/target/folder",
         }
-        config["Settings"] = {"library_1_percentage": 30}
+        config["Settings"] = {str("library_" + str(id) + "_percentage"): 30}
         with open(str(script_folder + "/config.ini"), "w") as configfile:
             config.write(configfile)
+
+    def move_selected_folders(self):
+        selected_indices = self.listbox.curselection()  # Get indices of selected items
+        selected_folders = [
+            self.subfolders_with_images[idx] for idx in selected_indices
+        ]
+        move_folders_to_target(self.source_folder, self.target_folder, selected_folders)
+
+        # for folder in selected_folders:
+        #     print("Moving:", folder)
+
+    def open_log_popup(self):
+        log_entries = self.read_log_entries()
+
+        popup = LogPopup(self, log_entries)
+        popup.title("Log Entries")
+        popup.geometry("400x300")
+        popup.mainloop()
+
+    def read_log_entries(self):
+        log_entries = []
+        search_for = str("Library " + str(id))
+        with open("Log.txt", "r") as log_file:
+            for line in log_file:
+                if search_for in line:
+                    cleaned_line = line.replace(search_for, "").strip()
+                    log_entries.append(cleaned_line)
+        return log_entries
+
+
+class LogPopup(tk.Toplevel):
+    def __init__(self, parent, log_entries):
+        super().__init__(parent)
+
+        self.log_entries = log_entries
+        self.listbox = tk.Listbox(self)
+        self.listbox.pack(fill="both", expand=True)
+        self.populate_listbox()
+
+    def populate_listbox(self):
+        self.listbox.delete(0, tk.END)
+        for entry in self.log_entries:
+            self.listbox.insert(tk.END, entry)
 
 
 def check_argument():
