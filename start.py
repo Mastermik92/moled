@@ -3,9 +3,11 @@ import os
 import math
 import random
 import shutil
+
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import Listbox, Button
+
 from tkinter import ttk
 import configparser
 import tkinter.filedialog
@@ -13,8 +15,8 @@ from crontab import CronTab
 import sys
 import datetime
 
-print("Start")
-# Elso tabon változtatott értékek némelyike megváltoztatja a második lapon lévőket
+# This is where the magic happens
+# sv_ttk.set_theme("dark")
 
 # Determine the script's location
 script_location = os.path.abspath(__file__)
@@ -237,43 +239,43 @@ class PopupWindow:
         )
         ok_button.pack()
 
-    def percentage_popup(self):
-        write_to_document("percentage_popup")
-        self.percentage_value = tk.StringVar()
-        self.example1_label = tk.Label(
-            self.popup, text="Set the percentage of folders that will be moved"
-        )
-        self.example1_label.pack()
-        self.perc_entry = tk.Entry(self.popup, textvariable=self.percentage_value)
-        self.perc_entry.pack()
-        ok_button = tk.Button(self.popup, text="OK", command=self.save_percentage)
-        ok_button.pack()
+    # def percentage_popup(self):
+    #     write_to_document("percentage_popup")
+    #     self.percentage_value = tk.StringVar()
+    #     self.example1_label = tk.Label(
+    #         self.popup, text="Set the percentage of folders that will be moved"
+    #     )
+    #     self.example1_label.pack()
+    #     self.perc_entry = tk.Entry(self.popup, textvariable=self.percentage_value)
+    #     self.perc_entry.pack()
+    #     ok_button = tk.Button(self.popup, text="OK", command=self.save_percentage)
+    #     ok_button.pack()
 
-    def save_percentage(self):
-        write_to_document("save_percentage")
-        global percentage
-        new_percentage = self.percentage_value.get()
-        if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
-            print("new percentage ", new_percentage)
-            self.parent.percentage = (
-                new_percentage  # Update the shared percentage value
-            )
-            self.parent.percentage_value = (
-                new_percentage  # Update the shared percentage value
-            )
-            percentage = new_percentage
-            # percentage = new_percentage
-            self.config["Settings"][
-                str("library_" + str(id) + "_percentage")
-            ] = new_percentage
-            with open(str(script_folder + "/config.ini"), "w") as configfile:
-                self.config.write(configfile)
-            self.popup.destroy()
-            app.refresh_perc()
-        else:
-            messagebox.showerror(
-                "Validation Error", f"The value should be between 1 and 100"
-            )
+    # def save_percentage(self):
+    #     write_to_document("save_percentage")
+    #     global percentage
+    #     new_percentage = self.percentage_value.get()
+    #     if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
+    #         print("new percentage ", new_percentage)
+    #         self.parent.percentage = (
+    #             new_percentage  # Update the shared percentage value
+    #         )
+    #         self.parent.percentage_value = (
+    #             new_percentage  # Update the shared percentage value
+    #         )
+    #         percentage = new_percentage
+    #         # percentage = new_percentage
+    #         self.config["Settings"][
+    #             str("library_" + str(id) + "_percentage")
+    #         ] = new_percentage
+    #         with open(str(script_folder + "/config.ini"), "w") as configfile:
+    #             self.config.write(configfile)
+    #         self.popup.destroy()
+    #         app.refresh_perc()
+    #     else:
+    #         messagebox.showerror(
+    #             "Validation Error", f"The value should be between 1 and 100"
+    #         )
 
     def validate_and_save_crontab(self):
         write_to_document("validate_and_save_crontab")
@@ -338,7 +340,7 @@ class ImageMoveGUI(tk.Tk):
         self.notebook.add(self.new_tab, text="Create New Library")
         self.notebook.pack(fill="both", expand=True)
         # Create new library button
-        self.new_tab_button = tk.Button(
+        self.new_tab_button = ttk.Button(
             self.new_tab,
             text="Create new library with default settings",
             command=self.create_default_config,
@@ -447,13 +449,15 @@ class ImageMoveGUI(tk.Tk):
 
         self.listbox = tk.Listbox(library_tab, selectmode=tk.MULTIPLE)
         # self.refresh_folder_list()  # Call the function to populate the listbox
-        self.listbox.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="w")
+        self.listbox.grid(
+            row=2, column=0, columnspan=3, rowspan=4, padx=10, pady=10, sticky="w"
+        )
 
         self.refresh_button = tk.Button(
             library_tab, text="Refresh", command=self.refresh_folder_list
         )
         self.refresh_button.grid(
-            row=3, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+            row=6, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
 
         self.move_selected_button = tk.Button(
@@ -462,22 +466,40 @@ class ImageMoveGUI(tk.Tk):
             command=self.move_selected_folders,
         )
         self.move_selected_button.grid(
-            row=4, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+            row=7, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
 
         self.move_button = tk.Button(
             library_tab, text="Move Random Folders Now", command=move_folders
         )
         self.move_button.grid(
-            row=5, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+            row=8, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
 
-        self.percentage_button = tk.Button(
+        # self.percentage_button = tk.Button(
+        #     library_tab,
+        #     text=str("Move " + str(percentage) + "%"),
+        #     command=self.open_percentage_popup,
+        # )
+        # self.percentage_button.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+        # Create a slider for percentage
+        self.percentage_slider = tk.Scale(
             library_tab,
-            text=str("Move " + str(percentage) + "%"),
-            command=self.open_percentage_popup,
+            from_=1,
+            to=100,
+            orient="horizontal",
+            showvalue=True,
+            command=self.update_percentage,
         )
-        self.percentage_button.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        self.percentage_slider.set(percentage)  # Set initial value
+        self.percentage_slider.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+        # Label to show the current percentage
+        # self.percentage_label = tk.Label(
+        #     library_tab, text=str("Move " + str(percentage) + "%")
+        # )
+        # self.percentage_label.grid(row=2, column=2, padx=10, pady=5, sticky="w")
 
         self.ido_button = tk.Button(
             library_tab, text="Crontab Schedule", command=self.open_crontab_popup
@@ -502,13 +524,33 @@ class ImageMoveGUI(tk.Tk):
             "movies_change_target_button": self.movies_change_target_button,
             "log_button": self.log_button,
             "listbox": self.listbox,
-            "percentage_button": self.percentage_button,
+            # "percentage_button": self.percentage_button,
         }
         print(self.library_buttons[tab])
         self.refresh_folder_list()
 
-    # def refresh_tab(self):
-    #     self.load_library_settings(id)
+    def update_percentage(self, value):
+        global percentage
+        write_to_document("update_percentage")
+        new_percentage = value
+        if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
+            print("new percentage ", new_percentage)
+            self.percentage = new_percentage  # Update the shared percentage value
+            self.percentage_value = new_percentage  # Update the shared percentage value
+            percentage = new_percentage
+            # percentage = new_percentage
+            self.config["Settings"][
+                str("library_" + str(id) + "_percentage")
+            ] = new_percentage
+            with open(str(script_folder + "/config.ini"), "w") as configfile:
+                self.config.write(configfile)
+            # app.refresh_perc()
+        else:
+            messagebox.showerror(
+                "Validation Error", f"The value should be between 1 and 100"
+            )
+        # percentage = self.percentage = int(value)
+        # self.percentage_label.config(text=str("Move " + str(self.percentage) + "%"))
 
     def open_crontab_popup(self):
         write_to_document("open_crontab_popup")
@@ -517,12 +559,12 @@ class ImageMoveGUI(tk.Tk):
         )  # Create an instance of PopupWindow
         crontab_popup.crontab_popup()
 
-    def open_percentage_popup(self):
-        write_to_document("open_percentage_popup")
-        percentage_popup = PopupWindow(
-            self, "Modify the percentage", percentage
-        )  # Create an instance of PopupWindow
-        percentage_popup.percentage_popup()
+    # def open_percentage_popup(self):
+    #     write_to_document("open_percentage_popup")
+    #     percentage_popup = PopupWindow(
+    #         self, "Modify the percentage", percentage
+    #     )  # Create an instance of PopupWindow
+    # percentage_popup.percentage_popup()
 
     def refresh_folder_list(self):
         write_to_document("refresh_folder_list")
@@ -539,12 +581,12 @@ class ImageMoveGUI(tk.Tk):
                 # self.listbox.insert(tk.END, folder_name)
                 self.library_buttons[self.tab]["listbox"].insert(tk.END, folder_name)
 
-    def refresh_perc(self):
-        write_to_document("refresh_perc")
-        if self.tab in self.library_buttons:
-            self.library_buttons[self.tab]["percentage_button"].config(
-                text=str("Move " + str(percentage) + "%")
-            )
+    # def refresh_perc(self):
+    #     write_to_document("refresh_perc")
+    #     if self.tab in self.library_buttons:
+    #         self.library_buttons[self.tab]["percentage_button"].config(
+    #             text=str("Move " + str(percentage) + "%")
+    #         )
 
     def change_movies_source(self):
         write_to_document("change_movies_source")
@@ -703,6 +745,18 @@ def check_argument():
 
 if __name__ == "__main__":
     check_argument()
+    # capp = customtkinter.CTk()  # create CTk window like you do with the Tk window
+
+    # def button_function():
+    #     print("button pressed")
+
+    # # Use CTkButton instead of tkinter Button
+    # button = customtkinter.CTkButton(
+    #     master=capp, text="CTkButton", command=button_function
+    # )
+    # # button.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
+
+    # capp.mainloop()
     app = ImageMoveGUI()
     app.mainloop()
 
