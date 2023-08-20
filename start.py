@@ -193,7 +193,7 @@ class PopupWindow:
         if os.path.exists(str(script_folder + "/config.ini")):
             self.config.read(str(script_folder + "/config.ini"))
         else:
-            self._create_default_config()
+            app.create_default_config()
         self.config.read(str(script_folder + "/config.ini"))
 
         self.percentage = percentage = percentage_n
@@ -314,6 +314,7 @@ class ImageMoveGUI(tk.Tk):
         write_to_document("__init__ IMAGEGUI")
         super().__init__()
         print("__init__ IMAGEGUI")
+
         self.config = configparser.ConfigParser()
         # self.tab = "Library 1"
         global percentage, source_folder, target_folder, id
@@ -322,7 +323,7 @@ class ImageMoveGUI(tk.Tk):
         if os.path.exists(str(script_folder + "/config.ini")):
             self.config.read(str(script_folder + "/config.ini"))
         else:
-            self._create_default_config()
+            self.create_default_config()
 
         self.tab = str("library" + str(id) + "_tab")
         self.tab_name = self.config["Settings"][str("library_" + str(id) + "_name")]
@@ -340,7 +341,7 @@ class ImageMoveGUI(tk.Tk):
         self.new_tab_button = tk.Button(
             self.new_tab,
             text="Create new library with default settings",
-            command=self.change_movies_source,
+            command=self.create_default_config,
             # Logic to get the next available id number, create entries in the config, then create library
         )
         self.new_tab_button.pack()
@@ -595,19 +596,37 @@ class ImageMoveGUI(tk.Tk):
             ] = new_source_folder  # Replace this part
             self.tv_series_source_var.set(new_source_folder)
 
-    def _create_default_config(self):
-        write_to_document("_create_default_config")
+    def create_default_config(self):
+        write_to_document("create_default_config")
         config = configparser.ConfigParser()
-        config["Paths"] = {
-            str("library_" + str(id) + "_source_folder"): "/path/to/source/folder",
-            str("library_" + str(id) + "_target_folder"): "/path/to/target/folder",
-        }
-        config["Settings"] = {str("library_" + str(id) + "_percentage"): 30}
-        config["Settings"] = {
-            str("library_" + str(id) + "_name"): str("Library " + str(id))
-        }
+        config.read(str(script_folder + "/config.ini"))
+        id = self.id
+        # config["Paths"] = {
+        #     str("library_" + str(id) + "_source_folder"): "/path/to/source/folder",
+        #     str("library_" + str(id) + "_target_folder"): "/path/to/target/folder",
+        # }
+        # Add or update entries in the Settings section
+        config["Settings"][str("library_" + str(id) + "_percentage")] = "30"
+        config["Settings"][str("library_" + str(id) + "_name")] = str(
+            "Library " + str(id)
+        )
+        config["Paths"][
+            str("library_" + str(id) + "_source_folder")
+        ] = "/path/to/source/folder"
+        config["Paths"][
+            str("library_" + str(id) + "_target_folder")
+        ] = "/path/to/target/folder"
+        # config["Settings"] = {
+        #     str("library_" + str(id) + "_percentage"): 30,
+        #     str("library_" + str(id) + "_name"): str("Library " + str(id)),
+        # }
         with open(str(script_folder + "/config.ini"), "w") as configfile:
             config.write(configfile)
+
+        app.create_library_tab(id)
+        self.library_count()
+        new_tab_index = id - 1  # Change this index to the desired tab
+        self.notebook.select(new_tab_index)
 
     def move_selected_folders(self):
         selected_indices = self.listbox.curselection()  # Get indices of selected items
