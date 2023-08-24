@@ -239,44 +239,6 @@ class PopupWindow:
         )
         ok_button.pack()
 
-    # def percentage_popup(self):
-    #     write_to_document("percentage_popup")
-    #     self.percentage_value = tk.StringVar()
-    #     self.example1_label = tk.Label(
-    #         self.popup, text="Set the percentage of folders that will be moved"
-    #     )
-    #     self.example1_label.pack()
-    #     self.perc_entry = tk.Entry(self.popup, textvariable=self.percentage_value)
-    #     self.perc_entry.pack()
-    #     ok_button = tk.Button(self.popup, text="OK", command=self.save_percentage)
-    #     ok_button.pack()
-
-    # def save_percentage(self):
-    #     write_to_document("save_percentage")
-    #     global percentage
-    #     new_percentage = self.percentage_value.get()
-    #     if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
-    #         print("new percentage ", new_percentage)
-    #         self.parent.percentage = (
-    #             new_percentage  # Update the shared percentage value
-    #         )
-    #         self.parent.percentage_value = (
-    #             new_percentage  # Update the shared percentage value
-    #         )
-    #         percentage = new_percentage
-    #         # percentage = new_percentage
-    #         self.config["Settings"][
-    #             str("library_" + str(id) + "_percentage")
-    #         ] = new_percentage
-    #         with open(str(script_folder + "/config.ini"), "w") as configfile:
-    #             self.config.write(configfile)
-    #         self.popup.destroy()
-    #         app.refresh_perc()
-    #     else:
-    #         messagebox.showerror(
-    #             "Validation Error", f"The value should be between 1 and 100"
-    #         )
-
     def validate_and_save_crontab(self):
         write_to_document("validate_and_save_crontab")
         crontab_expression = self.crontab_value.get()
@@ -364,6 +326,8 @@ class ImageMoveGUI(tk.Tk):
         print("3self.tab ", self.tab)
 
         self.load_library_settings(id)
+        new_tab_index = id - 1  # Change this index to the desired tab
+        self.notebook.select(new_tab_index)  # Active tab
 
     def library_count(self):
         # Count the number of library sections
@@ -469,13 +433,6 @@ class ImageMoveGUI(tk.Tk):
             row=7, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
 
-        self.move_button = tk.Button(
-            library_tab, text="Move Random Folders Now", command=move_folders
-        )
-        self.move_button.grid(
-            row=8, column=0, columnspan=3, padx=10, pady=5, sticky="w"
-        )
-
         # self.percentage_button = tk.Button(
         #     library_tab,
         #     text=str("Move " + str(percentage) + "%"),
@@ -483,6 +440,11 @@ class ImageMoveGUI(tk.Tk):
         # )
         # self.percentage_button.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
+        self.percentage_label = tk.Label(
+            library_tab,
+            text="Percentage of the found folders will be moved, rounded up:",
+        )
+        self.percentage_label.grid(row=2, column=1, padx=10, pady=5, sticky="w")
         # Create a slider for percentage
         self.percentage_slider = tk.Scale(
             library_tab,
@@ -493,7 +455,7 @@ class ImageMoveGUI(tk.Tk):
             command=self.update_percentage,
         )
         self.percentage_slider.set(percentage)  # Set initial value
-        self.percentage_slider.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        self.percentage_slider.grid(row=3, column=1, padx=10, pady=5, sticky="w")
 
         # Label to show the current percentage
         # self.percentage_label = tk.Label(
@@ -504,14 +466,19 @@ class ImageMoveGUI(tk.Tk):
         self.ido_button = tk.Button(
             library_tab, text="Crontab Schedule", command=self.open_crontab_popup
         )
-        self.ido_button.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+        self.ido_button.grid(row=4, column=1, padx=10, pady=5, sticky="w")
 
         self.crontab_value = None
+
+        self.move_button = tk.Button(
+            library_tab, text="Move Random Folders Now", command=move_folders
+        )
+        self.move_button.grid(row=5, column=1, padx=10, pady=5, sticky="w")
 
         self.log_button = tk.Button(
             library_tab, text="View Log Entries", command=self.open_log_popup
         )
-        self.log_button.grid(row=4, column=1, columnspan=3, padx=10, pady=5, sticky="w")
+        self.log_button.grid(row=7, column=1, columnspan=3, padx=10, pady=5, sticky="w")
 
         # Store the button in the dictionary with library name as key
         # self.library_buttons[tab] = self.movies_change_button
@@ -526,7 +493,7 @@ class ImageMoveGUI(tk.Tk):
             "listbox": self.listbox,
             # "percentage_button": self.percentage_button,
         }
-        print(self.library_buttons[tab])
+        # print(self.library_buttons[tab])
         self.refresh_folder_list()
 
     def update_percentage(self, value):
@@ -572,7 +539,7 @@ class ImageMoveGUI(tk.Tk):
         self.subfolders_with_images = find_subfolders_with_images(source_folder)
         # self.listbox.delete(0, tk.END)  # Clear the listbox
         print("self.tab ", self.tab)
-        print("self.library_buttons ", self.library_buttons)
+        # print("self.library_buttons ", self.library_buttons)
         if self.tab in self.library_buttons:  # If this is that tab
             print("this is that tab")
             self.library_buttons[self.tab]["listbox"].delete(0, tk.END)
@@ -668,10 +635,12 @@ class ImageMoveGUI(tk.Tk):
         app.create_library_tab(id)
         self.library_count()
         new_tab_index = id - 1  # Change this index to the desired tab
-        self.notebook.select(new_tab_index)
+        self.notebook.select(new_tab_index)  # Active tab
 
     def move_selected_folders(self):
-        selected_indices = self.listbox.curselection()  # Get indices of selected items
+        selected_indices = self.library_buttons[self.tab][
+            "listbox"
+        ].curselection()  # Get indices of selected items
         selected_folders = [
             self.subfolders_with_images[idx] for idx in selected_indices
         ]
@@ -716,7 +685,13 @@ class LogPopup(tk.Toplevel):
 
         self.log_entries = log_entries
         self.listbox = tk.Listbox(self)
+
+        self.scrollbar = tk.Scrollbar(self, orient="vertical")
+        self.scrollbar.pack(side="right", fill="y")
         self.listbox.pack(fill="both", expand=True)
+        self.listbox.config(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.listbox.yview)
+
         self.populate_listbox()
 
     def populate_listbox(self):
