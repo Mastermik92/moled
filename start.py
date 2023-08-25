@@ -27,9 +27,11 @@ arg1 = "moviemover"  # String to identify in the crontab table
 percentage = 30
 source_folder = "path/to/source"
 target_folder = "path/to/target"
+num_folders_to_move = 0
 
 
 def main():  # If the script started with argument, this function will run
+    # Without GUI
     print("main")
     write_to_document("main")
     # cron = CronTab(user=True)
@@ -50,6 +52,7 @@ def main():  # If the script started with argument, this function will run
         print("percentage ", percentage)
         move_folders()
     else:
+        write_to_document("Supposed to run, but did not find the config file")
         print("Config file is not available at ./config.ini")
 
 
@@ -167,6 +170,9 @@ def move_folders():
 
 def move_folders_to_target(source_folder, target_folder, selected_folders):
     write_to_document("move_folders_to_target")
+    write_to_document(str("Source: " + source_folder))
+    write_to_document(str("Target: " + target_folder))
+    write_to_document(str("Chosen folders: " + str(selected_folders)))
 
     for folder in selected_folders:
         subfolder_name = os.path.relpath(folder, source_folder)
@@ -181,8 +187,12 @@ def move_folders_to_target(source_folder, target_folder, selected_folders):
                         shutil.move(file_path, destination_path)
             else:
                 shutil.move(folder, destination_path)
+                write_to_document("Folders Moved")
         else:
             print("Target folder does not exist or doesn't have write permissions.")
+            write_to_document(
+                "Target folder does not exist or doesn't have write permissions."
+            )
     app.refresh_folder_list()  # Call the refresh function after changing the source folder
 
 
@@ -412,7 +422,6 @@ class ImageMoveGUI(tk.Tk):
         self.subfolders_with_images = find_subfolders_with_images(source_folder)
 
         self.listbox = tk.Listbox(library_tab, selectmode=tk.MULTIPLE)
-        # self.refresh_folder_list()  # Call the function to populate the listbox
         self.listbox.grid(
             row=2, column=0, columnspan=3, rowspan=4, padx=10, pady=10, sticky="w"
         )
@@ -433,16 +442,9 @@ class ImageMoveGUI(tk.Tk):
             row=7, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
 
-        # self.percentage_button = tk.Button(
-        #     library_tab,
-        #     text=str("Move " + str(percentage) + "%"),
-        #     command=self.open_percentage_popup,
-        # )
-        # self.percentage_button.grid(row=2, column=1, padx=10, pady=5, sticky="w")
-
         self.percentage_label = tk.Label(
             library_tab,
-            text="Percentage of the found folders will be moved, rounded up:",
+            text=str(str(percentage) + "%" + " of the found folders will be moved:"),
         )
         self.percentage_label.grid(row=2, column=1, padx=10, pady=5, sticky="w")
         # Create a slider for percentage
@@ -457,12 +459,6 @@ class ImageMoveGUI(tk.Tk):
         self.percentage_slider.set(percentage)  # Set initial value
         self.percentage_slider.grid(row=3, column=1, padx=10, pady=5, sticky="w")
 
-        # Label to show the current percentage
-        # self.percentage_label = tk.Label(
-        #     library_tab, text=str("Move " + str(percentage) + "%")
-        # )
-        # self.percentage_label.grid(row=2, column=2, padx=10, pady=5, sticky="w")
-
         self.ido_button = tk.Button(
             library_tab, text="Crontab Schedule", command=self.open_crontab_popup
         )
@@ -470,26 +466,23 @@ class ImageMoveGUI(tk.Tk):
 
         self.crontab_value = None
 
-        self.move_button = tk.Button(
-            library_tab, text="Move Random Folders Now", command=move_folders
-        )
-        self.move_button.grid(row=5, column=1, padx=10, pady=5, sticky="w")
-
         self.log_button = tk.Button(
             library_tab, text="View Log Entries", command=self.open_log_popup
         )
-        self.log_button.grid(row=7, column=1, columnspan=3, padx=10, pady=5, sticky="w")
+        self.log_button.grid(row=6, column=1, columnspan=3, padx=10, pady=5, sticky="w")
 
-        # Store the button in the dictionary with library name as key
-        # self.library_buttons[tab] = self.movies_change_button
-        # self.library_buttons[tab] = self.movies_change_target_button
-        # self.library_buttons[tab] = self.percentage_button
-
-        # Store library properties in the dictionary
+        self.move_button = tk.Button(
+            library_tab,
+            text=str("Move Random (" + str(num_folders_to_move) + ") Folders Now"),
+            command=move_folders,
+        )
+        self.move_button.grid(row=7, column=1, padx=10, pady=5, sticky="w")
         self.library_buttons[tab] = {
             "movies_change_source_button": self.movies_change_button,
             "movies_change_target_button": self.movies_change_target_button,
             "log_button": self.log_button,
+            "move_button": self.move_button,
+            "percentage_label": self.percentage_label,
             "listbox": self.listbox,
             # "percentage_button": self.percentage_button,
         }
@@ -497,7 +490,7 @@ class ImageMoveGUI(tk.Tk):
         self.refresh_folder_list()
 
     def update_percentage(self, value):
-        global percentage
+        global percentage, num_folders_to_move
         write_to_document("update_percentage")
         new_percentage = value
         if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
@@ -511,13 +504,47 @@ class ImageMoveGUI(tk.Tk):
             ] = new_percentage
             with open(str(script_folder + "/config.ini"), "w") as configfile:
                 self.config.write(configfile)
-            # app.refresh_perc()
+            # Refresh Move button's label
+            find_subfolders_with_images(source_folder)
+            num_folders_to_move = math.ceil(
+                len(self.subfolders_with_images) * int(percentage) / 100
+            )
+            if self.tab in self.library_buttons:
+                self.library_buttons[self.tab]["move_button"].config(
+                    text=str(
+                        "Move Random (" + str(num_folders_to_move) + ") Folders Now"
+                    )
+                )
+            # Update percentage's label
+            if self.tab in self.library_buttons:
+                self.library_buttons[self.tab]["percentage_label"].config(
+                    text=str(
+                        str(percentage) + "%" + " of the found folders will be moved:"
+                    )
+                )
+
         else:
             messagebox.showerror(
                 "Validation Error", f"The value should be between 1 and 100"
             )
-        # percentage = self.percentage = int(value)
-        # self.percentage_label.config(text=str("Move " + str(self.percentage) + "%"))
+
+    def percentage_popup(self):
+        self.percentage_value = tk.IntVar()
+        self.slider = tk.Scale(
+            self.popup,
+            from_=1,
+            to=100,
+            orient="horizontal",
+            variable=self.percentage_value,
+            command=self.update_percentage_label,
+        )
+        self.slider.pack()
+
+        self.percentage_label = tk.Label(self.popup, text="")
+        self.percentage_label.pack()
+
+    def update_percentage_label(self, value):
+        self.percentage_label.config(text=f"{value}%")
 
     def open_crontab_popup(self):
         write_to_document("open_crontab_popup")
@@ -713,25 +740,11 @@ def check_argument():
         except:  # is not valid
             print("Argument should be the ID number of the library")
     else:
-        print(
-            "Script started without any arguments. It should have started with: script librarynumber"
-        )
+        print("Script started without any arguments.")
 
 
 if __name__ == "__main__":
     check_argument()
-    # capp = customtkinter.CTk()  # create CTk window like you do with the Tk window
-
-    # def button_function():
-    #     print("button pressed")
-
-    # # Use CTkButton instead of tkinter Button
-    # button = customtkinter.CTkButton(
-    #     master=capp, text="CTkButton", command=button_function
-    # )
-    # # button.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
-
-    # capp.mainloop()
     app = ImageMoveGUI()
     app.mainloop()
 
