@@ -28,6 +28,8 @@ percentage = 30
 source_folder = "path/to/source"
 target_folder = "path/to/target"
 num_folders_to_move = 0
+library_name = "Library_1"
+a = 1  # If the config is generated in this session, do not create a +1 tab, because with the generation a tab is already added.
 
 
 def main():  # If the script started with argument, this function will run
@@ -40,12 +42,12 @@ def main():  # If the script started with argument, this function will run
     # Check if the config file exists
     if os.path.exists(str(script_folder + "/config.ini")):
         config.read(str(script_folder + "/config.ini"))
-        global percentage, source_folder, target_folder
+        global percentage, source_folder, target_folder, library_name
 
         print("searcjhhh ", str("library " + str(id) + "source folder"))
-        source_folder = config["Paths"][str("library_" + str(id) + "_source_folder")]
-        target_folder = config["Paths"][str("library_" + str(id) + "_target_folder")]
-        percentage = config["Settings"][str("library_" + str(id) + "_percentage")]
+        source_folder = config["Paths"][str("source_folder_library_" + str(id))]
+        target_folder = config["Paths"][str("target_folder_library_" + str(id))]
+        percentage = config["Settings"][str("percentage_library_" + str(id))]
         #    self.parent.percentage = percentage
         print("source_folder ", source_folder)
         print("target_folder ", target_folder)
@@ -123,6 +125,7 @@ def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=Fa
 
 
 def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "bmp")):
+    print("find_subfolders_with_images ", folder_path)
     write_to_document("find_subfolders_with_images")
     subfolders_with_images = []
 
@@ -143,7 +146,7 @@ def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "b
         ]
         if image_files:
             subfolders_with_images.append(root)
-
+    print("find_subfolders_with_images vege ", subfolders_with_images)
     return subfolders_with_images
 
 
@@ -202,10 +205,10 @@ class PopupWindow:
         self.config = configparser.ConfigParser()
         global percentage
         # Check if the config file exists
-        if os.path.exists(str(script_folder + "/config.ini")):
-            self.config.read(str(script_folder + "/config.ini"))
-        else:
-            app.create_default_config()
+        # if os.path.exists(str(script_folder + "/config.ini")):
+        #     self.config.read(str(script_folder + "/config.ini"))
+        # else:
+        #     app.create_config()
         self.config.read(str(script_folder + "/config.ini"))
 
         self.percentage = percentage = percentage_n
@@ -293,29 +296,28 @@ class ImageMoveGUI(tk.Tk):
         # self.tab = "Library 1"
         global percentage, source_folder, target_folder, id
 
-        # Check if the config file exists
-        if os.path.exists(str(script_folder + "/config.ini")):
-            self.config.read(str(script_folder + "/config.ini"))
-        else:
-            self.create_default_config()
-
-        self.tab = str("library" + str(id) + "_tab")
-        self.tab_name = self.config["Settings"][str("library_" + str(id) + "_name")]
         self.title("Image Move GUI")
         self.style = ttk.Style()
         self.style.configure("TNotebook", background="red")
         self.style.theme_use("clam")  # Use the system color scheme
-
         self.notebook = ttk.Notebook(self)
         self.new_tab = ttk.Frame(self.notebook)
-
         self.notebook.add(self.new_tab, text="Create New Library")
         self.notebook.pack(fill="both", expand=True)
+
+        # Check if the config file exists
+        if os.path.exists(str(script_folder + "/config.ini")):
+            self.config.read(str(script_folder + "/config.ini"))
+        else:
+            self.create_config()
+        self.tab = str("library" + str(id) + "_tab")
+        self.tab_name = self.config["Settings"][str("name_library_" + str(id))]
+
         # Create new library button
         self.new_tab_button = ttk.Button(
             self.new_tab,
             text="Create new library with default settings",
-            command=self.create_default_config,
+            command=self.create_config,
             # Logic to get the next available id number, create entries in the config, then create library
         )
         self.new_tab_button.pack()
@@ -326,7 +328,7 @@ class ImageMoveGUI(tk.Tk):
         self.library_buttons = {}
 
         # Create library tabs based on the count
-        for i in range(1, library_count + 1):
+        for i in range(1, library_count + a):
             self.create_library_tab(i)
 
         # Bind the tab change event
@@ -338,13 +340,15 @@ class ImageMoveGUI(tk.Tk):
         self.load_library_settings(id)
         new_tab_index = id - 1  # Change this index to the desired tab
         self.notebook.select(new_tab_index)  # Active tab
+        self.refresh_folder_list()
+        print("init vege")
 
     def library_count(self):
         # Count the number of library sections
         global library_count
         library_size = 0
         for key in self.config["Settings"]:
-            if key.endswith("percentage"):
+            if key.startswith("percentage"):
                 library_size += 1
         library_count = library_size
         print("Library count", library_size)
@@ -354,7 +358,7 @@ class ImageMoveGUI(tk.Tk):
         print("load_library_settings", i)
         self.library_count()
         if library_count + 1 == i:
-            print("Create new library tab")
+            print("We are on the Create new library tab")
         else:
             self.config = configparser.ConfigParser()
             if os.path.exists(str(script_folder + "/config.ini")):
@@ -362,29 +366,31 @@ class ImageMoveGUI(tk.Tk):
             global percentage, source_folder, target_folder
 
             self.source_folder = source_folder = self.config["Paths"][
-                str("library_" + str(i) + "_source_folder")
+                str("source_folder_library_" + str(i))
             ]
             self.target_folder = target_folder = self.config["Paths"][
-                str("library_" + str(i) + "_target_folder")
+                str("target_folder_library_" + str(i))
             ]
             self.percentage = percentage = self.config["Settings"][
-                str("library_" + str(i) + "_percentage")
+                str("percentage_library_" + str(i))
             ]
-            self.tab_name = self.config["Settings"][str("library_" + str(i) + "_name")]
+            self.tab_name = self.config["Settings"][str("name_library_" + str(i))]
 
-            print("tab ", i, "source_folder ", self.source_folder)
-            print("tab ", i, "target_folder ", self.target_folder)
-            print("tab ", i, "percentage ", self.percentage)
-            # print("tab ", i, "name ", self.tab)
-
-        self.refresh_folder_list()  # Call the refresh function after changing the source folder
+        print("tab ", i, "source_folder ", self.source_folder)
+        print("tab ", i, "target_folder ", self.target_folder)
+        print("tab ", i, "percentage ", self.percentage)
+        # print("tab ", i, "name ", self.tab)
+        print("Load library settings vege")
+        # self.refresh_folder_list()  # Call the refresh function after changing the source folder
 
     def create_library_tab(self, i):
         print("create_library_tab ", i)
+        print("library_count ", self.library_count)
+        # print("create_library_tab ", i)
         self.config = configparser.ConfigParser()
         library_section = f"library_{i}"
         self.config.read(str(script_folder + "/config.ini"))
-        tab = str("library" + str(i) + "_tab")
+        self.tab = str("library" + str(i) + "_tab")
         self.load_library_settings(i)
 
         # Create a new tab for the library
@@ -477,7 +483,8 @@ class ImageMoveGUI(tk.Tk):
             command=move_folders,
         )
         self.move_button.grid(row=7, column=1, padx=10, pady=5, sticky="w")
-        self.library_buttons[tab] = {
+        self.library_buttons = {}
+        self.library_buttons[self.tab] = {
             "movies_change_source_button": self.movies_change_button,
             "movies_change_target_button": self.movies_change_target_button,
             "log_button": self.log_button,
@@ -486,7 +493,7 @@ class ImageMoveGUI(tk.Tk):
             "listbox": self.listbox,
             # "percentage_button": self.percentage_button,
         }
-        # print(self.library_buttons[tab])
+        print("Create library tab vege")
         self.refresh_folder_list()
 
     def update_percentage(self, value):
@@ -495,12 +502,14 @@ class ImageMoveGUI(tk.Tk):
         new_percentage = value
         if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
             print("new percentage ", new_percentage)
-            self.percentage = new_percentage  # Update the shared percentage value
-            self.percentage_value = new_percentage  # Update the shared percentage value
-            percentage = new_percentage
+            self.percentage = (
+                percentage
+            ) = new_percentage  # Update the shared percentage value
+            # self.percentage_value = new_percentage  # Update the shared percentage value
+            # percentage = new_percentage
             # percentage = new_percentage
             self.config["Settings"][
-                str("library_" + str(id) + "_percentage")
+                str("percentage_library_" + str(id))
             ] = new_percentage
             with open(str(script_folder + "/config.ini"), "w") as configfile:
                 self.config.write(configfile)
@@ -509,6 +518,7 @@ class ImageMoveGUI(tk.Tk):
             num_folders_to_move = math.ceil(
                 len(self.subfolders_with_images) * int(percentage) / 100
             )
+            print("num_folders_to_move ", num_folders_to_move)
             if self.tab in self.library_buttons:
                 self.library_buttons[self.tab]["move_button"].config(
                     text=str(
@@ -528,20 +538,20 @@ class ImageMoveGUI(tk.Tk):
                 "Validation Error", f"The value should be between 1 and 100"
             )
 
-    def percentage_popup(self):
-        self.percentage_value = tk.IntVar()
-        self.slider = tk.Scale(
-            self.popup,
-            from_=1,
-            to=100,
-            orient="horizontal",
-            variable=self.percentage_value,
-            command=self.update_percentage_label,
-        )
-        self.slider.pack()
+    # def percentage_popup(self):
+    #     self.percentage_value = tk.IntVar()
+    #     self.slider = tk.Scale(
+    #         self.popup,
+    #         from_=1,
+    #         to=100,
+    #         orient="horizontal",
+    #         variable=self.percentage_value,
+    #         command=self.update_percentage_label,
+    #     )
+    #     self.slider.pack()
 
-        self.percentage_label = tk.Label(self.popup, text="")
-        self.percentage_label.pack()
+    #     self.percentage_label = tk.Label(self.popup, text="")
+    #     self.percentage_label.pack()
 
     def update_percentage_label(self, value):
         self.percentage_label.config(text=f"{value}%")
@@ -565,8 +575,8 @@ class ImageMoveGUI(tk.Tk):
         print("refresh_folder_list")
         self.subfolders_with_images = find_subfolders_with_images(source_folder)
         # self.listbox.delete(0, tk.END)  # Clear the listbox
-        print("self.tab ", self.tab)
         # print("self.library_buttons ", self.library_buttons)
+        print("self.tab ", self.tab)
         if self.tab in self.library_buttons:  # If this is that tab
             print("this is that tab")
             self.library_buttons[self.tab]["listbox"].delete(0, tk.END)
@@ -574,6 +584,7 @@ class ImageMoveGUI(tk.Tk):
                 folder_name = os.path.basename(folder)
                 # self.listbox.insert(tk.END, folder_name)
                 self.library_buttons[self.tab]["listbox"].insert(tk.END, folder_name)
+        print("refresh vege")
 
     # def refresh_perc(self):
     #     write_to_document("refresh_perc")
@@ -590,7 +601,7 @@ class ImageMoveGUI(tk.Tk):
             self.source_folder = new_source_folder
             print("library ", id, "folder: ", new_source_folder)
             self.config["Paths"][
-                str("library_" + str(id) + "_source_folder")
+                str("source_folder_library_" + str(id))
             ] = new_source_folder
             self.movies_source_var.set(new_source_folder)
             source_folder = new_source_folder
@@ -610,7 +621,7 @@ class ImageMoveGUI(tk.Tk):
             global target_folder
             self.target_folder = new_target_folder
             self.config["Paths"][
-                str("library_" + str(id) + "_target_folder")
+                str("source_folder_library_" + str(id))
             ] = new_target_folder
             self.movies_target_var.set(new_target_folder)
             target_folder = new_target_folder
@@ -632,37 +643,37 @@ class ImageMoveGUI(tk.Tk):
             ] = new_source_folder  # Replace this part
             self.tv_series_source_var.set(new_source_folder)
 
-    def create_default_config(self):
-        write_to_document("create_default_config")
+    def create_config(self):
+        write_to_document("create_config")
+        print("Create config")
         config = configparser.ConfigParser()
         config.read(str(script_folder + "/config.ini"))
-        id = self.id
-        # config["Paths"] = {
-        #     str("library_" + str(id) + "_source_folder"): "/path/to/source/folder",
-        #     str("library_" + str(id) + "_target_folder"): "/path/to/target/folder",
-        # }
-        # Add or update entries in the Settings section
-        config["Settings"][str("library_" + str(id) + "_percentage")] = "30"
-        config["Settings"][str("library_" + str(id) + "_name")] = str(
-            "Library " + str(id)
-        )
+        newconfig = 0
+        if "Settings" not in config:
+            config["Settings"] = {}
+            config["Paths"] = {}
+            newconfig = 1
+        config["Settings"][str("percentage_library_" + str(id))] = "30"
+        config["Settings"][str("name_library_" + str(id))] = str("Library " + str(id))
         config["Paths"][
-            str("library_" + str(id) + "_source_folder")
+            str("source_folder_library_" + str(id))
         ] = "/path/to/source/folder"
         config["Paths"][
-            str("library_" + str(id) + "_target_folder")
+            str("target_folder_library_" + str(id))
         ] = "/path/to/target/folder"
-        # config["Settings"] = {
-        #     str("library_" + str(id) + "_percentage"): 30,
-        #     str("library_" + str(id) + "_name"): str("Library " + str(id)),
-        # }
         with open(str(script_folder + "/config.ini"), "w") as configfile:
             config.write(configfile)
-
-        app.create_library_tab(id)
-        self.library_count()
+        if newconfig == 0:
+            self.library_count()
+        else:
+            global library_count, a
+            library_size = 1
+            a = 0
         new_tab_index = id - 1  # Change this index to the desired tab
+        self.create_library_tab(id)
         self.notebook.select(new_tab_index)  # Active tab
+
+        print("Create config vege")
 
     def move_selected_folders(self):
         selected_indices = self.library_buttons[self.tab][
@@ -698,11 +709,17 @@ class ImageMoveGUI(tk.Tk):
         # Get the selected tab index (0-based)
         global id
         selected_index = self.notebook.index(self.notebook.select())
+        print("update_id")
+        print(event)
+        print(id)
+        print("selected_index ", selected_index)
         # Update id based on the selected tab (adding 1 since id is 1-based)
         self.id = id = selected_index + 1
         self.tab = str("library" + str(id) + "_tab")
         print("1self.tab ", self.tab)
         self.load_library_settings(id)
+        self.refresh_folder_list()
+        print("update_id vege")
         print("id", id)
 
 
