@@ -197,6 +197,7 @@ def move_folders_to_target(source_folder, target_folder, selected_folders):
                 "Target folder does not exist or doesn't have write permissions."
             )
     app.refresh_folder_list()  # Call the refresh function after changing the source folder
+    app.update_percentage(percentage)
 
 
 class PopupWindow:
@@ -382,6 +383,7 @@ class ImageMoveGUI(tk.Tk):
         # print("tab ", i, "name ", self.tab)
         print("Load library settings vege")
         # self.refresh_folder_list()  # Call the refresh function after changing the source folder
+        self.refresh_folder_list()
 
     def create_library_tab(self, i):
         print("create_library_tab ", i)
@@ -483,7 +485,7 @@ class ImageMoveGUI(tk.Tk):
             command=move_folders,
         )
         self.move_button.grid(row=7, column=1, padx=10, pady=5, sticky="w")
-        self.library_buttons = {}
+        # self.library_buttons = {}
         self.library_buttons[self.tab] = {
             "movies_change_source_button": self.movies_change_button,
             "movies_change_target_button": self.movies_change_target_button,
@@ -493,6 +495,9 @@ class ImageMoveGUI(tk.Tk):
             "listbox": self.listbox,
             # "percentage_button": self.percentage_button,
         }
+        print("self.tab ", self.tab)
+        print("self.library_buttons ", self.library_buttons)
+
         print("Create library tab vege")
         self.refresh_folder_list()
 
@@ -532,6 +537,11 @@ class ImageMoveGUI(tk.Tk):
                         str(percentage) + "%" + " of the found folders will be moved:"
                     )
                 )
+                print("Megtalalva")
+            else:
+                print("Nincs talalat")
+                print("self.tab ", self.tab)
+                print("self.library_buttons ", self.library_buttons)
 
         else:
             messagebox.showerror(
@@ -585,6 +595,7 @@ class ImageMoveGUI(tk.Tk):
                 # self.listbox.insert(tk.END, folder_name)
                 self.library_buttons[self.tab]["listbox"].insert(tk.END, folder_name)
         print("refresh vege")
+        self.update_percentage(percentage)
 
     # def refresh_perc(self):
     #     write_to_document("refresh_perc")
@@ -595,6 +606,7 @@ class ImageMoveGUI(tk.Tk):
 
     def change_movies_source(self):
         write_to_document("change_movies_source")
+        print("change_movies_source")
         new_source_folder = tk.filedialog.askdirectory()
         if new_source_folder:
             global source_folder
@@ -616,12 +628,14 @@ class ImageMoveGUI(tk.Tk):
 
     def change_movies_target(self):
         write_to_document("change_movies_target")
+        print("change_movies_target")
         new_target_folder = tk.filedialog.askdirectory()
+        print("new_target_folder ", new_target_folder)
         if new_target_folder:
             global target_folder
             self.target_folder = new_target_folder
             self.config["Paths"][
-                str("source_folder_library_" + str(id))
+                str("target_folder_library_" + str(id))
             ] = new_target_folder
             self.movies_target_var.set(new_target_folder)
             target_folder = new_target_folder
@@ -683,7 +697,7 @@ class ImageMoveGUI(tk.Tk):
             self.subfolders_with_images[idx] for idx in selected_indices
         ]
         move_folders_to_target(source_folder, target_folder, selected_folders)
-
+        self.update_percentage(percentage)
         # for folder in selected_folders:
         #     print("Moving:", folder)
 
