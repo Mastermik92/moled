@@ -222,10 +222,17 @@ class PopupWindow:
         write_to_document("crontab_popup")
         # Add contents and layout for the popup window here
         self.crontab_value = tk.StringVar()
+        self.config = configparser.ConfigParser()
+        self.config.read(str(script_folder + "/config.ini"))
 
         self.label = tk.Label(self.popup, text="Custom crontab time code:")
         self.label.pack()
 
+        # Check if the key exists in the config file and set the value
+        if str("schedule_library_" + str(id)) in self.config["Settings"]:
+            self.crontab_value.set(
+                self.config["Settings"][str("schedule_library_" + str(id))]
+            )
         self.crontab_entry = tk.Entry(self.popup, textvariable=self.crontab_value)
         self.crontab_entry.pack()
 
@@ -248,14 +255,28 @@ class PopupWindow:
         )
         self.information_label.pack()
 
-        ok_button = tk.Button(
-            self.popup, text="OK", command=self.validate_and_save_crontab
+        del_button = tk.Button(
+            self.popup, text="Delete saved entry", command=self.delete_saved_crontab
         )
-        ok_button.pack()
+        del_button.pack(side=tk.LEFT, padx=10, pady=5)
+
+        ok_button = tk.Button(
+            self.popup, text="Save", command=self.validate_and_save_crontab
+        )
+        ok_button.pack(side=tk.RIGHT, padx=10, pady=5)
+
+    def delete_saved_crontab(self):
+        print("Delete")
+        self.crontab_value.set("")  # Clear the crontab_entry textbox
+        if str("schedule_library_" + str(id)) in self.config["Settings"]:
+            del self.config["Settings"][str("schedule_library_" + str(id))]
+            with open(str(script_folder + "/config.ini"), "w") as configfile:
+                self.config.write(configfile)
 
     def validate_and_save_crontab(self):
         write_to_document("validate_and_save_crontab")
         crontab_expression = self.crontab_value.get()
+        self.config = configparser.ConfigParser()
         print("Okés22")
         ## Using the current user
         try:
@@ -279,6 +300,14 @@ class PopupWindow:
                     )
                 else:
                     create_crontab_entry(script_location, crontab_expression, cron)
+                # Save to the config
+                if os.path.exists(str(script_folder + "/config.ini")):
+                    self.config.read(str(script_folder + "/config.ini"))
+                self.config["Settings"][
+                    str("schedule_library_" + str(id))
+                ] = crontab_expression
+                with open(str(script_folder + "/config.ini"), "w") as configfile:
+                    self.config.write(configfile)
 
         except Exception as e:
             print("Exception")
@@ -647,15 +676,15 @@ class ImageMoveGUI(tk.Tk):
                 )
             # self.movies_change_target_button.config(text=new_target_folder)
 
-    def change_tv_series_source(self):
-        write_to_document("change_tv_series_source")
-        new_source_folder = tk.filedialog.askdirectory()
-        if new_source_folder:
-            self.source_folder_tv_series = new_source_folder
-            self.config["Paths"][
-                "tv_source_folder"
-            ] = new_source_folder  # Replace this part
-            self.tv_series_source_var.set(new_source_folder)
+    # def change_tv_series_source(self):
+    #     write_to_document("change_tv_series_source")
+    #     new_source_folder = tk.filedialog.askdirectory()
+    #     if new_source_folder:
+    #         self.source_folder_tv_series = new_source_folder
+    #         self.config["Paths"][
+    #             "tv_source_folder"
+    #         ] = new_source_folder  # Replace this part
+    #         self.tv_series_source_var.set(new_source_folder)
 
     def create_config(self):
         write_to_document("create_config")
