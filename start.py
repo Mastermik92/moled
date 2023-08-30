@@ -15,9 +15,6 @@ from crontab import CronTab
 import sys
 import datetime
 
-# This is where the magic happens
-# sv_ttk.set_theme("dark")
-
 # Determine the script's location
 script_location = os.path.abspath(__file__)
 script_folder = os.path.dirname(os.path.abspath(__file__))
@@ -30,6 +27,7 @@ target_folder = "path/to/target"
 num_folders_to_move = 0
 library_name = "Library_1"
 a = 1  # If the config is generated in this session, do not create a +1 tab, because with the generation a tab is already added.
+deljob = 0  # This will contain the job chosen from the crontab entries, which will be deleted
 
 
 def main():  # If the script started with argument, this function will run
@@ -93,6 +91,8 @@ def is_script_already_added(cron, arg1):
         print("Script keresese: ", job.comment)
         if ide in job.comment:
             print("Script megtalalva")
+            deljob = job
+            print("deljob", deljob)
             return True
     return False
 
@@ -267,11 +267,19 @@ class PopupWindow:
 
     def delete_saved_crontab(self):
         print("Delete")
-        self.crontab_value.set("")  # Clear the crontab_entry textbox
+        # Check if the key exists in the config file and remove it if it does
         if str("schedule_library_" + str(id)) in self.config["Settings"]:
             del self.config["Settings"][str("schedule_library_" + str(id))]
             with open(str(script_folder + "/config.ini"), "w") as configfile:
                 self.config.write(configfile)
+        # If it is in the crontab, then delete it from there
+        cron = CronTab(user=True)
+        if is_script_already_added(cron, arg1):
+            ide = str(id) + " " + arg1
+            cron.remove(cron.find_comment(ide))
+            cron.write()  # Save changes to the crontab
+
+        self.crontab_value.set("")  # Clear the crontab_entry textbox
 
     def validate_and_save_crontab(self):
         write_to_document("validate_and_save_crontab")
@@ -577,21 +585,6 @@ class ImageMoveGUI(tk.Tk):
                 "Validation Error", f"The value should be between 1 and 100"
             )
 
-    # def percentage_popup(self):
-    #     self.percentage_value = tk.IntVar()
-    #     self.slider = tk.Scale(
-    #         self.popup,
-    #         from_=1,
-    #         to=100,
-    #         orient="horizontal",
-    #         variable=self.percentage_value,
-    #         command=self.update_percentage_label,
-    #     )
-    #     self.slider.pack()
-
-    #     self.percentage_label = tk.Label(self.popup, text="")
-    #     self.percentage_label.pack()
-
     def update_percentage_label(self, value):
         self.percentage_label.config(text=f"{value}%")
 
@@ -601,13 +594,6 @@ class ImageMoveGUI(tk.Tk):
             self, "Edit/Add crontab schedule", percentage
         )  # Create an instance of PopupWindow
         crontab_popup.crontab_popup()
-
-    # def open_percentage_popup(self):
-    #     write_to_document("open_percentage_popup")
-    #     percentage_popup = PopupWindow(
-    #         self, "Modify the percentage", percentage
-    #     )  # Create an instance of PopupWindow
-    # percentage_popup.percentage_popup()
 
     def refresh_folder_list(self):
         write_to_document("refresh_folder_list")
@@ -625,13 +611,6 @@ class ImageMoveGUI(tk.Tk):
                 self.library_buttons[self.tab]["listbox"].insert(tk.END, folder_name)
         print("refresh vege")
         self.update_percentage(percentage)
-
-    # def refresh_perc(self):
-    #     write_to_document("refresh_perc")
-    #     if self.tab in self.library_buttons:
-    #         self.library_buttons[self.tab]["percentage_button"].config(
-    #             text=str("Move " + str(percentage) + "%")
-    #         )
 
     def change_movies_source(self):
         write_to_document("change_movies_source")
@@ -674,17 +653,6 @@ class ImageMoveGUI(tk.Tk):
                 self.library_buttons[self.tab]["movies_change_target_button"].config(
                     text=new_target_folder
                 )
-            # self.movies_change_target_button.config(text=new_target_folder)
-
-    # def change_tv_series_source(self):
-    #     write_to_document("change_tv_series_source")
-    #     new_source_folder = tk.filedialog.askdirectory()
-    #     if new_source_folder:
-    #         self.source_folder_tv_series = new_source_folder
-    #         self.config["Paths"][
-    #             "tv_source_folder"
-    #         ] = new_source_folder  # Replace this part
-    #         self.tv_series_source_var.set(new_source_folder)
 
     def create_config(self):
         write_to_document("create_config")
