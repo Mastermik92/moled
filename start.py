@@ -88,9 +88,9 @@ def is_script_already_added(cron, arg1):
     ide = str(id) + " " + arg1
     print("search for ", ide)
     for job in cron:
-        print("Script keresese: ", job.comment)
+        print("Script search: ", job.comment)
         if ide in job.comment:
-            print("Script megtalalva")
+            print("Script found")
             deljob = job
             print("deljob", deljob)
             return True
@@ -100,7 +100,7 @@ def is_script_already_added(cron, arg1):
 def create_crontab_entry(i, crontab_expression, cron, edit_mode=False):
     write_to_document("create_crontab_entry")
     print("create_crontab_entry()")
-    print("script_location ", script_location)
+    # print("script_location ", script_location)
     print("crontab_expression ", crontab_expression)
     print("id ", i)
     crontab_entry = f"{crontab_expression} /usr/bin/env python3 {script_location}"
@@ -109,10 +109,12 @@ def create_crontab_entry(i, crontab_expression, cron, edit_mode=False):
         existing_crontab = crontab_file.read()
     # Split the existing crontab into lines
     lines = existing_crontab.strip().split("\n")
+    print("lines ", lines)
 
     if edit_mode:
         # Remove the old crontab entry, if exists
-        lines = [line for line in lines if arg1 not in line]
+        lines = [line for line in lines if str(str(i) + " " + arg1) not in line]
+        print("lines edit_mode ", lines)
 
     # Append the new crontab entry
     lines.append(crontab_entry + " " + str(i) + " #" + str(i) + " " + arg1 + "\n")
@@ -626,7 +628,7 @@ class ImageMoveGUI(tk.Tk):
             # ide_plus = str(new_id_plus) + " " + arg1
             if new_id < library_count:  # There are higher indexed keys
                 for job in cron:
-                    print("Script keresese: ", job.comment)
+                    print("Script search: ", job.comment)
                     if ide in job.comment:  # There is schedule set for this library
                         crontab_expression = self.config["Settings"][
                             str("schedule_library_" + str(new_id_plus))
