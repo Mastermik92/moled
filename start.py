@@ -97,12 +97,12 @@ def is_script_already_added(cron, arg1):
     return False
 
 
-def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=False):
+def create_crontab_entry(i, crontab_expression, cron, edit_mode=False):
     write_to_document("create_crontab_entry")
     print("create_crontab_entry()")
     print("script_location ", script_location)
     print("crontab_expression ", crontab_expression)
-    print("id ", id)
+    print("id ", i)
     crontab_entry = f"{crontab_expression} /usr/bin/env python3 {script_location}"
 
     with os.popen("crontab -l") as crontab_file:
@@ -115,7 +115,7 @@ def create_crontab_entry(script_location, crontab_expression, cron, edit_mode=Fa
         lines = [line for line in lines if arg1 not in line]
 
     # Append the new crontab entry
-    lines.append(crontab_entry + " " + str(id) + " #" + str(id) + " " + arg1 + "\n")
+    lines.append(crontab_entry + " " + str(i) + " #" + str(i) + " " + arg1 + "\n")
 
     # Join the lines and write back to crontab
     new_crontab = "\n".join(lines)
@@ -261,7 +261,7 @@ class PopupWindow:
         ok_button.pack(side=tk.RIGHT, padx=10, pady=5)
 
     def delete_saved_crontab(self):
-        print("Delete")
+        print("Delete crontab entry")
         # Check if the key exists in the config file and remove it if it does
         if str("schedule_library_" + str(id)) in self.config["Settings"]:
             del self.config["Settings"][str("schedule_library_" + str(id))]
@@ -280,12 +280,10 @@ class PopupWindow:
         write_to_document("validate_and_save_crontab")
         crontab_expression = self.crontab_value.get()
         self.config = configparser.ConfigParser()
-        print("Okés22")
+        print("validate_and_save_crontab")
         ## Using the current user
         try:
-            print("try1")
             cron = CronTab(user=True)
-            print("try2")
             if len(crontab_expression) == 0:
                 print("len")
                 messagebox.showerror(
@@ -298,11 +296,11 @@ class PopupWindow:
                 print("script_location ", script_location)
                 print("crontab_expression ", crontab_expression)
                 if is_script_already_added(cron, arg1):
-                    create_crontab_entry(
-                        script_location, crontab_expression, cron, True
-                    )
+                    create_crontab_entry(id, crontab_expression, cron, True)
+                    print("create_crontab_entry, script_already_added")
                 else:
-                    create_crontab_entry(script_location, crontab_expression, cron)
+                    create_crontab_entry(id, crontab_expression, cron)
+                    print("create_crontab_entry")
                 # Save to the config
                 if os.path.exists(str(script_folder + "/config.ini")):
                     self.config.read(str(script_folder + "/config.ini"))
@@ -315,7 +313,6 @@ class PopupWindow:
         except Exception as e:
             print("Exception")
             messagebox.showerror("Validation Error", f"Error: {str(e)}")
-        # 0 20 * * 5
 
 
 # GUI
@@ -592,12 +589,13 @@ class ImageMoveGUI(tk.Tk):
     def delete_library(self):
         print("delete library")
         self.library_count()
+        cron = CronTab(user=True)
         # Get the current library id
         current_id = self.id
 
         # Iterate through keys and overwrite them
         for i in range(0, library_count - current_id + 1):
-            print("iterate ", i)
+            print("iteration ", i)
             print("max ", library_count)
             new_id = current_id + i
             new_id_plus = new_id + 1
@@ -611,7 +609,6 @@ class ImageMoveGUI(tk.Tk):
                         print(new_key_name)
                         self.config["Settings"][key] = self.config["Settings"][new_key]
                     else:  # These the keys with highest index
-                        print(library_count, "elerve, torles: ", key)
                         # Remove the settings of the last library
                         self.config["Settings"].pop(key, None)
             for key2 in self.config["Paths"]:
@@ -623,9 +620,21 @@ class ImageMoveGUI(tk.Tk):
                         print(new_key_name)
                         self.config["Paths"][key2] = self.config["Paths"][new_key]
                     else:  # These the keys with highest index
-                        print(library_count, "elerve, torles: ", key2)
                         # Remove the Path of the last library
                         self.config["Paths"].pop(key2, None)
+            ide = str(new_id) + " " + arg1
+            # ide_plus = str(new_id_plus) + " " + arg1
+            if new_id < library_count:  # There are higher indexed keys
+                for job in cron:
+                    print("Script keresese: ", job.comment)
+                    if ide in job.comment:  # There is schedule set for this library
+                        crontab_expression = self.config["Settings"][
+                            str("schedule_library_" + str(new_id_plus))
+                        ]  # We get the schedule setting from the next library
+                        create_crontab_entry(new_id, crontab_expression, cron, True)
+            else:
+                cron.remove(cron.find_comment(ide))
+                cron.write()  # Save changes to the crontab
 
         # Update the config file
         with open(str(script_folder + "/config.ini"), "w") as configfile:
@@ -637,7 +646,6 @@ class ImageMoveGUI(tk.Tk):
         self.notebook.select(self.id)  # Switch back to the first tab
 
         # Update GUI elements
-        # self.update_tabs()
         app.mainloop()
         self.library_count()
 
@@ -771,6 +779,7 @@ class ImageMoveGUI(tk.Tk):
             newconfig = 1
         config["Settings"][str("percentage_library_" + str(id))] = "30"
         config["Settings"][str("name_library_" + str(id))] = str("Library " + str(id))
+        config["Settings"][str("schedule_library_" + str(id))] = str("No schedule")
         config["Paths"][
             str("source_folder_library_" + str(id))
         ] = "/path/to/source/folder"
