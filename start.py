@@ -439,44 +439,55 @@ class ImageMoveGUI(tk.Tk):
         )
 
         # Source folder section
-        self.movies_label = tk.Label(library_tab, text="Source Folder (copy from)")
+        source_frame = ttk.Frame(library_tab)
+        source_frame.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.movies_label = tk.Label(source_frame, text="Source Folder (copy from):")
         self.movies_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.movies_source_var = tk.StringVar(value=source_folder)
         self.movies_change_button = tk.Button(
-            library_tab,
+            source_frame,
             text=source_folder,
             command=self.change_movies_source,
         )
         self.movies_change_button.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        source_frame.config(borderwidth=2, relief="solid")
         # Target folder section
+        target_frame = ttk.Frame(library_tab)
+        target_frame.grid(row=0, column=1, padx=10, pady=10, sticky="w")
         self.movies_target_label = tk.Label(
-            library_tab, text="Target Folder (copy to): "
+            target_frame, text="Target Folder (copy to): "
         )
         self.movies_target_var = tk.StringVar(value=target_folder)
-        self.movies_target_label.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        self.movies_target_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.movies_change_target_button = tk.Button(
-            library_tab,
+            target_frame,
             text=target_folder,
             command=self.change_movies_target,
         )
         self.movies_change_target_button.grid(
-            row=1, column=1, padx=10, pady=5, sticky="w"
+            row=1, column=0, padx=10, pady=5, sticky="w"
         )
-
+        target_frame.config(borderwidth=2, relief="solid")
+        # List
+        listbox_frame = ttk.Frame(library_tab)
+        listbox_frame.grid(
+            row=1, column=0, columnspan=3, rowspan=6, padx=10, pady=10, sticky="w"
+        )
         # Listbox and move button
         self.subfolders_with_images = find_subfolders_with_images(source_folder)
 
-        self.listbox = tk.Listbox(library_tab, selectmode=tk.MULTIPLE)
+        self.listbox = tk.Listbox(listbox_frame, selectmode=tk.MULTIPLE)
         self.listbox.grid(
-            row=2, column=0, columnspan=3, rowspan=4, padx=10, pady=10, sticky="w"
+            row=1, column=0, columnspan=3, rowspan=4, padx=10, pady=10, sticky="w"
         )
 
         self.refresh_button = tk.Button(
-            library_tab, text="Refresh", command=self.refresh_folder_list
+            listbox_frame, text="Refresh", command=self.refresh_folder_list
         )
         self.refresh_button.grid(
-            row=6, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+            row=5, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
+        listbox_frame.config(borderwidth=2, relief="solid")
 
         self.move_selected_button = tk.Button(
             library_tab,
@@ -487,14 +498,18 @@ class ImageMoveGUI(tk.Tk):
             row=7, column=0, columnspan=3, padx=10, pady=5, sticky="w"
         )
 
+        # Create a frame to hold the percentage elements
+        percentage_frame = ttk.Frame(library_tab)
+        percentage_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
         self.percentage_label = tk.Label(
-            library_tab,
+            percentage_frame,
             text=str(str(percentage) + "%" + " of the found folders will be moved:"),
         )
-        self.percentage_label.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        self.percentage_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
         # Create a slider for percentage
         self.percentage_slider = tk.Scale(
-            library_tab,
+            percentage_frame,
             from_=1,
             to=100,
             orient="horizontal",
@@ -502,26 +517,36 @@ class ImageMoveGUI(tk.Tk):
             command=self.update_percentage,
         )
         self.percentage_slider.set(percentage)  # Set initial value
-        self.percentage_slider.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+        self.percentage_slider.grid(
+            row=1, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+        )
+        percentage_frame.config(borderwidth=2, relief="solid")
 
         self.ido_button = tk.Button(
             library_tab, text="Crontab Schedule", command=self.open_crontab_popup
         )
-        self.ido_button.grid(row=4, column=1, padx=10, pady=5, sticky="w")
+        self.ido_button.grid(row=2, column=1, padx=10, pady=5, sticky="e")
 
         self.crontab_value = None
 
         self.log_button = tk.Button(
             library_tab, text="View Log Entries", command=self.open_log_popup
         )
-        self.log_button.grid(row=6, column=1, columnspan=3, padx=10, pady=5, sticky="w")
+        self.log_button.grid(row=3, column=1, columnspan=3, padx=10, pady=5, sticky="e")
+
+        self.delete_libray_button = tk.Button(
+            library_tab,
+            text="Delete Libray",
+            command=self.move_selected_folders,
+        )
+        self.delete_libray_button.grid(row=5, column=1, padx=10, pady=5, sticky="e")
 
         self.move_button = tk.Button(
             library_tab,
             text=str("Move Random (" + str(num_folders_to_move) + ") Folders Now"),
             command=move_folders,
         )
-        self.move_button.grid(row=7, column=1, padx=10, pady=5, sticky="w")
+        self.move_button.grid(row=7, column=1, padx=10, pady=5, sticky="e")
         # self.library_buttons = {}
         self.library_buttons[self.tab] = {
             "movies_change_source_button": self.movies_change_button,
@@ -543,18 +568,20 @@ class ImageMoveGUI(tk.Tk):
         write_to_document("update_percentage")
         new_percentage = value
         if new_percentage.isdigit() and 1 <= int(new_percentage) <= 100:
-            print("new percentage ", new_percentage)
-            self.percentage = (
-                percentage
-            ) = new_percentage  # Update the shared percentage value
-            # self.percentage_value = new_percentage  # Update the shared percentage value
-            # percentage = new_percentage
-            # percentage = new_percentage
-            self.config["Settings"][
-                str("percentage_library_" + str(id))
-            ] = new_percentage
-            with open(str(script_folder + "/config.ini"), "w") as configfile:
-                self.config.write(configfile)
+            if new_percentage != percentage:  # Changed
+                print("new percentage ", new_percentage)
+                self.percentage = (
+                    percentage
+                ) = new_percentage  # Update the shared percentage value
+                # self.percentage_value = new_percentage  # Update the shared percentage value
+                # percentage = new_percentage
+                # percentage = new_percentage
+                self.config["Settings"][
+                    str("percentage_library_" + str(id))
+                ] = new_percentage
+                with open(str(script_folder + "/config.ini"), "w") as configfile:
+                    self.config.write(configfile)
+            # These will be updated even if just a tab changed, not the actual percentage:
             # Refresh Move button's label
             find_subfolders_with_images(source_folder)
             num_folders_to_move = math.ceil(
