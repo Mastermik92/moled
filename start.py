@@ -453,19 +453,21 @@ class ImageMoveGUI(tk.Tk):
         source_frame.config(borderwidth=2, relief="solid")
         # Target folder section
         target_frame = ttk.Frame(library_tab)
-        target_frame.grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        target_frame.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="w")
         self.movies_target_label = tk.Label(
             target_frame, text="Target Folder (copy to): "
         )
         self.movies_target_var = tk.StringVar(value=target_folder)
-        self.movies_target_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.movies_target_label.grid(
+            row=0, column=0, columnspan=2, padx=10, pady=5, sticky="w"
+        )
         self.movies_change_target_button = tk.Button(
             target_frame,
             text=target_folder,
             command=self.change_movies_target,
         )
         self.movies_change_target_button.grid(
-            row=1, column=0, padx=10, pady=5, sticky="w"
+            row=1, column=0, columnspan=2, padx=10, pady=5, sticky="w"
         )
         target_frame.config(borderwidth=2, relief="solid")
         # List
@@ -500,13 +502,17 @@ class ImageMoveGUI(tk.Tk):
 
         # Create a frame to hold the percentage elements
         percentage_frame = ttk.Frame(library_tab)
-        percentage_frame.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        percentage_frame.grid(
+            row=1, column=1, columnspan=2, padx=10, pady=5, sticky="w"
+        )
 
         self.percentage_label = tk.Label(
             percentage_frame,
             text=str(str(percentage) + "%" + " of the found folders will be moved:"),
         )
-        self.percentage_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.percentage_label.grid(
+            row=0, column=0, columnspan=2, padx=10, pady=5, sticky="w"
+        )
         # Create a slider for percentage
         self.percentage_slider = tk.Scale(
             percentage_frame,
@@ -518,35 +524,44 @@ class ImageMoveGUI(tk.Tk):
         )
         self.percentage_slider.set(percentage)  # Set initial value
         self.percentage_slider.grid(
-            row=1, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+            row=1, column=0, columnspan=2, padx=10, pady=5, sticky="w"
         )
         percentage_frame.config(borderwidth=2, relief="solid")
 
         self.ido_button = tk.Button(
             library_tab, text="Crontab Schedule", command=self.open_crontab_popup
         )
-        self.ido_button.grid(row=2, column=1, padx=10, pady=5, sticky="e")
+        self.ido_button.grid(row=2, column=2, padx=10, pady=5, sticky="e")
 
         self.crontab_value = None
 
         self.log_button = tk.Button(
             library_tab, text="View Log Entries", command=self.open_log_popup
         )
-        self.log_button.grid(row=3, column=1, columnspan=3, padx=10, pady=5, sticky="e")
+        self.log_button.grid(row=3, column=2, padx=10, pady=5, sticky="e")
 
-        self.delete_libray_button = tk.Button(
+        self.rename_library_button = tk.Button(
+            library_tab,
+            text="Rename Library",
+            command=self.rename_library,
+        )
+        self.rename_library_button.grid(row=5, column=1, padx=10, pady=5, sticky="e")
+
+        self.delete_library_button = tk.Button(
             library_tab,
             text="Delete Libray",
-            command=self.move_selected_folders,
+            command=self.delete_library,
         )
-        self.delete_libray_button.grid(row=5, column=1, padx=10, pady=5, sticky="e")
+        self.delete_library_button.grid(row=5, column=2, padx=10, pady=5, sticky="e")
 
         self.move_button = tk.Button(
             library_tab,
             text=str("Move Random (" + str(num_folders_to_move) + ") Folders Now"),
             command=move_folders,
         )
-        self.move_button.grid(row=7, column=1, padx=10, pady=5, sticky="e")
+        self.move_button.grid(
+            row=7, column=1, columnspan=2, padx=10, pady=5, sticky="e"
+        )
         # self.library_buttons = {}
         self.library_buttons[self.tab] = {
             "movies_change_source_button": self.movies_change_button,
@@ -562,6 +577,61 @@ class ImageMoveGUI(tk.Tk):
 
         print("Create library tab vege")
         self.refresh_folder_list()
+
+    def rename_library(self):
+        print("rename_library")
+
+    def delete_library(self):
+        print("delete library")
+        self.library_count()
+        # Get the current library id
+        current_id = self.id
+
+        # Iterate through keys and overwrite them
+        for i in range(0, library_count - current_id + 1):
+            print("iterate ", i)
+            print("max ", library_count)
+            new_id = current_id + i
+            new_id_plus = new_id + 1
+            print("new_id ", new_id)
+            for key in self.config["Settings"]:
+                if key.endswith(str("_" + str(new_id))):
+                    if new_id < library_count:  # There are higher indexed keys
+                        new_key_name = key.rsplit("_", 1)[0]
+                        new_key = new_key_name + "_" + str(new_id_plus)
+                        print(new_key)
+                        print(new_key_name)
+                        self.config["Settings"][key] = self.config["Settings"][new_key]
+                    else:  # These the keys with highest index
+                        print(library_count, "elerve, torles: ", key)
+                        # Remove the settings of the last library
+                        self.config["Settings"].pop(key, None)
+            for key2 in self.config["Paths"]:
+                if key2.endswith(str("_" + str(new_id))):
+                    if new_id < library_count:  # There are higher indexed keys
+                        new_key_name = key2.rsplit("_", 1)[0]
+                        new_key = new_key_name + "_" + str(new_id_plus)
+                        print(new_key)
+                        print(new_key_name)
+                        self.config["Paths"][key2] = self.config["Paths"][new_key]
+                    else:  # These the keys with highest index
+                        print(library_count, "elerve, torles: ", key2)
+                        # Remove the Path of the last library
+                        self.config["Paths"].pop(key2, None)
+
+        # Update the config file
+        with open(str(script_folder + "/config.ini"), "w") as configfile:
+            self.config.write(configfile)
+
+        # Close the current tab
+        self.notebook.forget(self.notebook.select())
+        self.id = current_id - 1
+        self.notebook.select(self.id)  # Switch back to the first tab
+
+        # Update GUI elements
+        # self.update_tabs()
+        app.mainloop()
+        self.library_count()
 
     def update_percentage(self, value):
         global percentage, num_folders_to_move
