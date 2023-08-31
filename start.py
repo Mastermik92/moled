@@ -3,7 +3,7 @@ import os
 import math
 import random
 import shutil
-
+from tkinter import simpledialog
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import Listbox, Button
@@ -205,11 +205,6 @@ class PopupWindow:
         write_to_document("__init__Popup")
         self.config = configparser.ConfigParser()
         global percentage
-        # Check if the config file exists
-        # if os.path.exists(str(script_folder + "/config.ini")):
-        #     self.config.read(str(script_folder + "/config.ini"))
-        # else:
-        #     app.create_config()
         self.config.read(str(script_folder + "/config.ini"))
 
         self.percentage = percentage = percentage_n
@@ -431,11 +426,13 @@ class ImageMoveGUI(tk.Tk):
         self.config.read(str(script_folder + "/config.ini"))
         self.tab = str("library" + str(i) + "_tab")
         self.load_library_settings(i)
-
+        library_name = self.config["Settings"][str("name_library_" + str(i))]
         # Create a new tab for the library
         library_tab = ttk.Frame(self.notebook)
         self.notebook.insert(
-            len(self.notebook.tabs()) - 1, library_tab, text=f"Library {i}"
+            len(self.notebook.tabs()) - 1,
+            library_tab,
+            text=library_name,  # text=f"Library {i}"
         )
 
         # Source folder section
@@ -570,7 +567,7 @@ class ImageMoveGUI(tk.Tk):
             "move_button": self.move_button,
             "percentage_label": self.percentage_label,
             "listbox": self.listbox,
-            # "percentage_button": self.percentage_button,
+            # "name": self.listbox,
         }
         print("self.tab ", self.tab)
         print("self.library_buttons ", self.library_buttons)
@@ -580,6 +577,17 @@ class ImageMoveGUI(tk.Tk):
 
     def rename_library(self):
         print("rename_library")
+        # Get the current library id
+        new_name = simpledialog.askstring("Rename Library", "Enter new library name:")
+        if new_name:
+            # Assuming you have the 'id' value defined
+            key = f"name_library_{id}"
+            self.config["Settings"][key] = new_name
+            with open("config.ini", "w") as configfile:
+                self.config.write(configfile)
+            print(f"Renamed library {id} to {new_name}")
+
+        self.notebook.tab(id - 1, text=new_name)
 
     def delete_library(self):
         print("delete library")
