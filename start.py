@@ -41,16 +41,20 @@ def main():  # If the script started with argument, this function will run
     # Check if the config file exists
     if os.path.exists(str(script_folder + "/config.ini")):
         config.read(str(script_folder + "/config.ini"))
-        global percentage, source_folder, target_folder, library_name
+        global percentage, source_folder, target_folder, library_name, extensions
 
         print("searcjhhh ", str("library " + str(id) + "source folder"))
         source_folder = config["Paths"][str("source_folder_library_" + str(id))]
         target_folder = config["Paths"][str("target_folder_library_" + str(id))]
+        extensions = config["Settings"][str("extensions_library_" + str(id))]
+        library_name = config["Settings"][str("name_library_" + str(id))]
         percentage = config["Settings"][str("percentage_library_" + str(id))]
         #    self.parent.percentage = percentage
         print("source_folder ", source_folder)
         print("target_folder ", target_folder)
         print("percentage ", percentage)
+        print("library_name ", library_name)
+        print("extensions ", extensions)
         move_folders()
     else:
         write_to_document("Supposed to run, but did not find the config file")
@@ -127,7 +131,7 @@ def create_crontab_entry(i, crontab_expression, cron, edit_mode=False):
         crontab_file.write(new_crontab)
 
 
-def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "bmp")):
+def find_subfolders_with_images(folder_path):
     print("find_subfolders_with_images ", folder_path)
     write_to_document("find_subfolders_with_images")
     subfolders_with_images = []
@@ -142,12 +146,12 @@ def find_subfolders_with_images(folder_path, image_extensions=("jpg", "jpeg", "b
         if current_depth > 1:
             continue
 
-        image_files = [
+        i_files = [
             file
             for file in files
-            if os.path.splitext(file)[1].lower().lstrip(".") in image_extensions
+            if os.path.splitext(file)[1].lower().lstrip(".") in extensions
         ]
-        if image_files:
+        if i_files:
             subfolders_with_images.append(root)
     print("find_subfolders_with_images vege ", subfolders_with_images)
     return subfolders_with_images
@@ -317,6 +321,37 @@ class PopupWindow:
             print("Exception")
             messagebox.showerror("Validation Error", f"Error: {str(e)}")
 
+    def change_filetypes(self):
+        print("change_filetypes")
+        write_to_document("crontab_popup")
+        # self.parent = parent
+        # self.popup = tk.Toplevel(parent)
+        # Add contents and layout for the popup window here
+        self.exts = tk.StringVar()
+        self.config = configparser.ConfigParser()
+        self.config.read(str(script_folder + "/config.ini"))
+
+        self.label = tk.Label(
+            self.popup, text="Change what file extensions the script will search for:"
+        )
+        self.label.pack()
+
+        # Check if the key exists in the config file and set the value
+        if str("extensions_library_" + str(id)) in self.config["Settings"]:
+            self.exts.set(self.config["Settings"][str("extensions_library_" + str(id))])
+        self.extension_entry = tk.Entry(self.popup, textvariable=self.exts)
+        self.extension_entry.pack()
+
+        second_label = tk.Label(
+            self.popup,
+            text="The script only considers folders for moving that have files in them with the above extensions",
+        )
+        second_label.pack()
+        ok_button = tk.Button(
+            self.popup, text="Save", command=lambda: self.save_extensions(self.exts)
+        )
+        ok_button.pack(side=tk.RIGHT, padx=10, pady=5)
+
 
 # GUI
 class ImageMoveGUI(tk.Tk):
@@ -327,7 +362,7 @@ class ImageMoveGUI(tk.Tk):
 
         self.config = configparser.ConfigParser()
         # self.tab = "Library 1"
-        global percentage, source_folder, target_folder, id
+        global percentage, source_folder, target_folder, id, extensions
 
         self.title("Image Move GUI")
         self.style = ttk.Style()
@@ -345,6 +380,7 @@ class ImageMoveGUI(tk.Tk):
             self.create_config()
         self.tab = str("library" + str(id) + "_tab")
         self.tab_name = self.config["Settings"][str("name_library_" + str(id))]
+        extensions = self.config["Settings"][str("extensions_library_" + str(id))]
 
         # Create new library button
         self.new_tab_button = ttk.Button(
@@ -413,7 +449,7 @@ class ImageMoveGUI(tk.Tk):
         print("tab ", i, "target_folder ", self.target_folder)
         print("tab ", i, "percentage ", self.percentage)
         # print("tab ", i, "name ", self.tab)
-        print("Load library settings vege")
+        print("Load library settings ends")
         # self.refresh_folder_list()  # Call the refresh function after changing the source folder
         self.refresh_folder_list()
 
@@ -475,8 +511,9 @@ class ImageMoveGUI(tk.Tk):
         self.filetypes_button = tk.Button(
             listbox_frame,
             text="Watched file types",
-            command=self.change_filetypes,
+            command=self.open_change_filetypes_popup,
         )
+
         self.filetypes_button.grid(row=1, column=0, padx=10, pady=5, sticky="e")
         # Listbox and move button
         self.subfolders_with_images = find_subfolders_with_images(source_folder)
@@ -581,19 +618,14 @@ class ImageMoveGUI(tk.Tk):
         print("Create library tab vege")
         self.refresh_folder_list()
 
-    def change_filetypes(self):
-        print("change_filetypes")
-        # Get the current library id
-        new_name = simpledialog.askstring("Rename Library", "Enter new library name:")
-        if new_name:
-            # Assuming you have the 'id' value defined
-            key = f"name_library_{id}"
-            self.config["Settings"][key] = new_name
-            with open("config.ini", "w") as configfile:
-                self.config.write(configfile)
-            print(f"Renamed library {id} to {new_name}")
-
-        self.notebook.tab(id - 1, text=new_name)
+    def save_extensions(self, exts):
+        global extensions
+        extensions = exts
+        config = configparser.ConfigParser()
+        self.config.read(str(script_folder + "/config.ini"))
+        config["Settings"][str("extensions_library_" + str(id))] = extensions
+        with open(str(script_folder + "/config.ini"), "w") as configfile:
+            config.write(configfile)
 
     def rename_library(self):
         print("rename_library")
@@ -730,6 +762,13 @@ class ImageMoveGUI(tk.Tk):
             self, "Edit/Add crontab schedule", percentage
         )  # Create an instance of PopupWindow
         crontab_popup.crontab_popup()
+
+    def open_change_filetypes_popup(self):
+        write_to_document("open_change_filetypes_popup")
+        change_filetypes = PopupWindow(
+            self, "Edit/Add crontab schedule", percentage
+        )  # Create an instance of PopupWindow
+        change_filetypes.change_filetypes()
 
     def refresh_folder_list(self):
         write_to_document("refresh_folder_list")
