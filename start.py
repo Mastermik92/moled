@@ -28,6 +28,7 @@ num_folders_to_move = 0
 library_name = "Library_1"
 a = 1  # If the config is generated in this session, do not create a +1 tab, because with the generation a tab is already added.
 deljob = 0  # This will contain the job chosen from the crontab entries, which will be deleted
+extensions = 0  # Array of chosen extensions
 
 
 def main():  # If the script started with argument, this function will run
@@ -469,21 +470,27 @@ class ImageMoveGUI(tk.Tk):
         # List
         listbox_frame = ttk.Frame(library_tab)
         listbox_frame.grid(
-            row=1, column=0, columnspan=3, rowspan=6, padx=10, pady=10, sticky="w"
+            row=1, column=0, columnspan=2, rowspan=6, padx=10, pady=10, sticky="w"
         )
+        self.filetypes_button = tk.Button(
+            listbox_frame,
+            text="Watched file types",
+            command=self.change_filetypes,
+        )
+        self.filetypes_button.grid(row=1, column=0, padx=10, pady=5, sticky="e")
         # Listbox and move button
         self.subfolders_with_images = find_subfolders_with_images(source_folder)
 
         self.listbox = tk.Listbox(listbox_frame, selectmode=tk.MULTIPLE)
         self.listbox.grid(
-            row=1, column=0, columnspan=3, rowspan=4, padx=10, pady=10, sticky="w"
+            row=2, column=0, columnspan=2, rowspan=3, padx=10, pady=10, sticky="w"
         )
 
         self.refresh_button = tk.Button(
             listbox_frame, text="Refresh", command=self.refresh_folder_list
         )
         self.refresh_button.grid(
-            row=5, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+            row=5, column=0, columnspan=2, padx=10, pady=5, sticky="w"
         )
         listbox_frame.config(borderwidth=2, relief="solid")
 
@@ -493,7 +500,7 @@ class ImageMoveGUI(tk.Tk):
             command=self.move_selected_folders,
         )
         self.move_selected_button.grid(
-            row=7, column=0, columnspan=3, padx=10, pady=5, sticky="w"
+            row=7, column=0, columnspan=2, padx=10, pady=5, sticky="w"
         )
 
         # Create a frame to hold the percentage elements
@@ -573,6 +580,20 @@ class ImageMoveGUI(tk.Tk):
 
         print("Create library tab vege")
         self.refresh_folder_list()
+
+    def change_filetypes(self):
+        print("change_filetypes")
+        # Get the current library id
+        new_name = simpledialog.askstring("Rename Library", "Enter new library name:")
+        if new_name:
+            # Assuming you have the 'id' value defined
+            key = f"name_library_{id}"
+            self.config["Settings"][key] = new_name
+            with open("config.ini", "w") as configfile:
+                self.config.write(configfile)
+            print(f"Renamed library {id} to {new_name}")
+
+        self.notebook.tab(id - 1, text=new_name)
 
     def rename_library(self):
         print("rename_library")
@@ -782,6 +803,9 @@ class ImageMoveGUI(tk.Tk):
         config["Settings"][str("percentage_library_" + str(id))] = "30"
         config["Settings"][str("name_library_" + str(id))] = str("Library " + str(id))
         config["Settings"][str("schedule_library_" + str(id))] = str("No schedule")
+        config["Settings"][str("extensions_library_" + str(id))] = str(
+            ["mkv", "mp4", "avi"]
+        )
         config["Paths"][
             str("source_folder_library_" + str(id))
         ] = "/path/to/source/folder"
