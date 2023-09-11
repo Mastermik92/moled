@@ -46,7 +46,7 @@ def main():  # If the script started with argument, this function will run
         print("searcjhhh ", str("library " + str(id) + "source folder"))
         source_folder = config["Paths"][str("source_folder_library_" + str(id))]
         target_folder = config["Paths"][str("target_folder_library_" + str(id))]
-        extensions = config["Settings"][str("extensions_library_" + str(id))]
+        extensions = config["Settings"][str("extensions_library_" + str(id))]  # list
         library_name = config["Settings"][str("name_library_" + str(id))]
         percentage = config["Settings"][str("percentage_library_" + str(id))]
         #    self.parent.percentage = percentage
@@ -335,10 +335,16 @@ class PopupWindow:
             self.popup, text="Change what file extensions the script will search for:"
         )
         self.label.pack()
-
         # Check if the key exists in the config file and set the value
         if str("extensions_library_" + str(id)) in self.config["Settings"]:
-            self.exts.set(self.config["Settings"][str("extensions_library_" + str(id))])
+            # self.exts.set(self.config["Settings"][str("extensions_library_" + str(id))])
+            exts_str = self.config["Settings"][str("extensions_library_" + str(id))]
+            # Convert the string to a list
+            # exts_list = exts_str.split(",")
+            exts_list = exts_str.strip("[]").replace("'", "").split(", ")
+            # Join the list into a comma-separated string for display
+            exts_display = ",".join(exts_list)
+            self.exts.set(exts_display)
         self.extension_entry = tk.Entry(self.popup, textvariable=self.exts)
         self.extension_entry.pack()
 
@@ -348,9 +354,28 @@ class PopupWindow:
         )
         second_label.pack()
         ok_button = tk.Button(
-            self.popup, text="Save", command=lambda: self.save_extensions(self.exts)
+            self.popup, text="Save", command=lambda: self.save_extensions()
         )
         ok_button.pack(side=tk.RIGHT, padx=10, pady=5)
+
+    def save_extensions(self):
+        global extensions
+        self.config = configparser.ConfigParser()
+        self.config.read(str(script_folder + "/config.ini"))
+        # Get the extensions string from the Entry widget
+        exts_display = self.exts.get()
+        # Split the string into a list
+        exts_list = exts_display.split(",")
+        # Save the list as a string in the config file
+        exts_str = str("[" + ",".join(exts_list) + "]")
+        extensions = exts_str
+        print("new extensions: ", extensions)
+        self.config["Settings"][str("extensions_library_" + str(id))] = exts_str
+        with open(str(script_folder + "/config.ini"), "w") as configfile:
+            self.config.write(configfile)
+        app.refresh_folder_list()
+        # Close the popup
+        self.popup.destroy()
 
 
 # GUI
@@ -432,7 +457,7 @@ class ImageMoveGUI(tk.Tk):
             self.config = configparser.ConfigParser()
             if os.path.exists(str(script_folder + "/config.ini")):
                 self.config.read(str(script_folder + "/config.ini"))
-            global percentage, source_folder, target_folder
+            global percentage, source_folder, target_folder, extensions
 
             self.source_folder = source_folder = self.config["Paths"][
                 str("source_folder_library_" + str(i))
@@ -443,11 +468,15 @@ class ImageMoveGUI(tk.Tk):
             self.percentage = percentage = self.config["Settings"][
                 str("percentage_library_" + str(i))
             ]
+            self.extensions = extensions = self.config["Settings"][
+                str("extensions_library_" + str(i))
+            ]
             self.tab_name = self.config["Settings"][str("name_library_" + str(i))]
 
         print("tab ", i, "source_folder ", self.source_folder)
         print("tab ", i, "target_folder ", self.target_folder)
         print("tab ", i, "percentage ", self.percentage)
+        print("tab ", i, "extensions ", self.extensions)
         # print("tab ", i, "name ", self.tab)
         print("Load library settings ends")
         # self.refresh_folder_list()  # Call the refresh function after changing the source folder
@@ -510,7 +539,7 @@ class ImageMoveGUI(tk.Tk):
         )
         self.filetypes_button = tk.Button(
             listbox_frame,
-            text="Watched file types",
+            text="Watched file extensions",
             command=self.open_change_filetypes_popup,
         )
 
@@ -617,15 +646,6 @@ class ImageMoveGUI(tk.Tk):
 
         print("Create library tab vege")
         self.refresh_folder_list()
-
-    def save_extensions(self, exts):
-        global extensions
-        extensions = exts
-        config = configparser.ConfigParser()
-        self.config.read(str(script_folder + "/config.ini"))
-        config["Settings"][str("extensions_library_" + str(id))] = extensions
-        with open(str(script_folder + "/config.ini"), "w") as configfile:
-            config.write(configfile)
 
     def rename_library(self):
         print("rename_library")
