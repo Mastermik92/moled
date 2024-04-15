@@ -7,7 +7,7 @@ from tkinter import simpledialog
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import Listbox, Button
-
+import send2trash
 from tkinter import ttk
 import configparser
 import tkinter.filedialog
@@ -29,6 +29,11 @@ library_name = "Library_1"
 a = 1  # If the config is generated in this session, do not create a +1 tab, because with the generation a tab is already added.
 deljob = 0  # This will contain the job chosen from the crontab entries, which will be deleted
 extensions = 0  # Array of chosen extensions
+
+# Copy-Move-Delete
+# Kiválasztás: Random, ABC, date
+# No config bug, kétszer kell indítani
+# Másolás után, ha megmaradt a folder (pl már volt ott egy olyan folder, vagy egy kép-video már ott volt), akkor nézze meg, hogy a folderben van-e watched extension. Ha nincs, akkor törölje (Lomtarba)
 
 
 def main():  # If the script started with argument, this function will run
@@ -123,10 +128,13 @@ def create_crontab_entry(i, crontab_expression, cron, edit_mode=False):
 
     # Append the new crontab entry
     lines.append(crontab_entry + " " + str(i) + " #" + str(i) + " " + arg1 + "\n")
+    if lines[0] == "":
+        lines = lines[1:]
+    print("lines ", lines)
 
     # Join the lines and write back to crontab
     new_crontab = "\n".join(lines)
-
+    print(new_crontab)
     with os.popen("crontab", "w") as crontab_file:
         crontab_file.write(new_crontab)
 
@@ -161,8 +169,23 @@ def compare_folders(source_folder, destination_folder):
     write_to_document("compare_folders")
     source_files = set(os.listdir(source_folder))
     destination_files = set(os.listdir(destination_folder))
+    source_filesX = str(source_files)
+    destination_filesX = str(destination_files)
+    s_d = str("source_files: " + source_filesX)
+    write_to_document(s_d)
+    d_d = str("destination_folder: " + destination_filesX)
+    write_to_document(d_d)
+    file_difference = source_files.difference(destination_files)
+    # nonIntersect = not source_files.intersection(destination_files)
+    write_to_document("file_difference")
+    write_to_document(str(file_difference))
+    return file_difference
 
-    return not source_files.intersection(destination_files)
+
+def touch_file(file_path):
+    # Update the access and modification times of the file
+    write_to_document("touch folder function")
+    os.utime(file_path)
 
 
 def move_folders():
@@ -191,13 +214,50 @@ def move_folders_to_target(source_folder, target_folder, selected_folders):
         # Check if the destination folder already exists
         if os.path.exists(target_folder) and os.access(target_folder, os.W_OK):
             if os.path.exists(destination_path):
-                if compare_folders(folder, destination_path):
-                    for file in os.listdir(folder):
+                write_to_document(
+                    "The destination already has a folder with the same name. Compare."
+                )
+                diff = compare_folders(folder, destination_path)
+                if diff:
+                    # Move the files from the source folder to the target folder
+                    for file in diff:
+                        write_to_document("moving ")
+                        write_to_document(file)
                         file_path = os.path.join(folder, file)
                         shutil.move(file_path, destination_path)
+                        write_to_document("touch_1")
+                        touch_file(destination_path)
+                    # After the move, check if the chosen folder has any files with the watched extension. If it has none, delete it.
+                    leftover_files = [files for files in os.listdir(folder)]
+
+                    # Filter out files with valid extensions
+                    leftover_files_with_watched_extensions = [
+                        file
+                        for file in leftover_files
+                        if any(file.lower().endswith(ext) for ext in extensions)
+                    ]
+                    # If there are no remaining files with valid extensions, delete chosen folder
+                    if not leftover_files_with_watched_extensions:
+                        write_to_document(
+                            str(
+                                "The chosen folder does not have any files with watched extensions, deleting chosen folder"
+                            )
+                        )
+                        send2trash.send2trash(folder)
+                    else:
+                        write_to_document(
+                            "The chosen folder have files with watched extensions"
+                        )
+
+                else:
+                    write_to_document(
+                        str("Every file already exists in the target folder")
+                    )
             else:
                 shutil.move(folder, destination_path)
                 write_to_document("Folders Moved")
+                write_to_document("touch_2")
+                touch_file(destination_path)
         else:
             print("Target folder does not exist or doesn't have write permissions.")
             write_to_document(
@@ -299,7 +359,7 @@ class PopupWindow:
             else:
                 print("else")
                 self.parent.crontab_value = crontab_expression
-                self.popup.destroy()
+                # self.popup.destroy()
                 print("script_location ", script_location)
                 print("crontab_expression ", crontab_expression)
                 if is_script_already_added(cron, arg1):
@@ -309,6 +369,7 @@ class PopupWindow:
                     create_crontab_entry(id, crontab_expression, cron)
                     print("create_crontab_entry")
                 # Save to the config
+                print("Save shedule to the config")
                 if os.path.exists(str(script_folder + "/config.ini")):
                     self.config.read(str(script_folder + "/config.ini"))
                 self.config["Settings"][
@@ -316,6 +377,8 @@ class PopupWindow:
                 ] = crontab_expression
                 with open(str(script_folder + "/config.ini"), "w") as configfile:
                     self.config.write(configfile)
+                # Close the popup
+                self.popup.destroy()
 
         except Exception as e:
             print("Exception")
@@ -503,7 +566,7 @@ class ImageMoveGUI(tk.Tk):
         # Source folder section
         source_frame = ttk.Frame(library_tab)
         source_frame.grid(row=0, column=0, padx=10, pady=10, sticky="w")
-        self.movies_label = tk.Label(source_frame, text="Source Folder (copy from):")
+        self.movies_label = tk.Label(source_frame, text="Source Folder (move from):")
         self.movies_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.movies_source_var = tk.StringVar(value=source_folder)
         self.movies_change_button = tk.Button(
@@ -517,7 +580,7 @@ class ImageMoveGUI(tk.Tk):
         target_frame = ttk.Frame(library_tab)
         target_frame.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="w")
         self.movies_target_label = tk.Label(
-            target_frame, text="Target Folder (copy to): "
+            target_frame, text="Target Folder (move to): "
         )
         self.movies_target_var = tk.StringVar(value=target_folder)
         self.movies_target_label.grid(
